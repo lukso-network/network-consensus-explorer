@@ -1,0 +1,37 @@
+name: replace-currency
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  currency-replace:
+    runs-on: ubuntu-latest
+    name: A job to find and replace chain currency symbol
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Find and Replace
+        uses: jacobtomlinson/gha-find-replace@v2
+        with:
+          find: "ETH"
+          replace: "LYXt"
+          regex: true
+          exclude: ".github/**"
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          commit-message: Find and replace currency
+          title: '[Automated PR] Find and replace currency'
+          delete-branch: true
+          body: |
+            Found currency instances that can be replaced. Please review
+      - name: Check outputs
+        run: |
+          echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+          echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
