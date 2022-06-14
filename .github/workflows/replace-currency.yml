@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+          ref: master
           fetch-depth: 0
       - name: Find and Replace
         uses: jacobtomlinson/gha-find-replace@v2
@@ -20,7 +21,7 @@ jobs:
           find: "ETH"
           replace: "LYXt"
           regex: true
-          exclude: ".github/**"
+          exclude: ".git**"
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v3
