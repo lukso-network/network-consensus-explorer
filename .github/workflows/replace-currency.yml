@@ -25,6 +25,7 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@v3
         with:
+          token: ${{ secrets.GH_TOKEN }}
           commit-message: Find and replace currency
           title: '[Automated PR] Find and replace currency'
           delete-branch: true
