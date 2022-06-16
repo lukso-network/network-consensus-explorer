@@ -18,7 +18,7 @@ jobs:
       - name: Find and Replace
         uses: jacobtomlinson/gha-find-replace@v2
         with:
-          find: "ETH"
+          find: '\bETH\b'
           replace: "LYXt"
           regex: true
           exclude: ".git**"
