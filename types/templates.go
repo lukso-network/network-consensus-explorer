@@ -54,7 +54,7 @@ type PageData struct {
 	InfoBanner            *template.HTML
 	ClientsUpdated        bool
 	IsUserClientUpdated   func(uint64) bool
-	Phase0                Phase0
+	ChainConfig           ChainConfig
 	Lang                  string
 	NoAds                 bool
 }
@@ -283,6 +283,7 @@ type ValidatorPageData struct {
 	Index                               uint64         `db:"index"`
 	LastAttestationSlot                 *uint64        `db:"lastattestationslot"`
 	Name                                string         `db:"name"`
+	Pool                                string         `db:"pool"`
 	Tags                                pq.StringArray `db:"tags"`
 	WithdrawableTs                      time.Time
 	ActivationEligibilityTs             time.Time
@@ -548,12 +549,30 @@ type BlockPageData struct {
 	VotingValidatorsCount  uint64
 	Mainnet                bool
 
-	SyncCommittee     []uint64
+	ExecParentHash        []byte        `db:"exec_parent_hash"`
+	ExecFeeRecipient      []byte        `db:"exec_fee_recipient"`
+	ExecStateRoot         []byte        `db:"exec_state_root"`
+	ExecReceiptsRoot      []byte        `db:"exec_receipts_root"`
+	ExecLogsBloom         []byte        `db:"exec_logs_bloom"`
+	ExecRandom            []byte        `db:"exec_random"`
+	ExecBlockNumber       sql.NullInt64 `db:"exec_block_number"`
+	ExecGasLimit          sql.NullInt64 `db:"exec_gas_limit"`
+	ExecGasUsed           sql.NullInt64 `db:"exec_gas_used"`
+	ExecTimestamp         sql.NullInt64 `db:"exec_timestamp"`
+	ExecTime              time.Time
+	ExecExtraData         []byte        `db:"exec_extra_data"`
+	ExecBaseFeePerGas     sql.NullInt64 `db:"exec_base_fee_per_gas"`
+	ExecBlockHash         []byte        `db:"exec_block_hash"`
+	ExecTransactionsCount uint64        `db:"exec_transactions_count"`
+
+	Transactions []*BlockPageTransaction
+
 	Attestations      []*BlockPageAttestation // Attestations included in this block
 	VoluntaryExits    []*BlockPageVoluntaryExits
 	Votes             []*BlockVote // Attestations that voted for that block
 	AttesterSlashings []*BlockPageAttesterSlashing
 	ProposerSlashings []*BlockPageProposerSlashing
+	SyncCommittee     []uint64 // TODO: Setting it to contain the validator index
 }
 
 func (u *BlockPageData) MarshalJSON() ([]byte, error) {
@@ -580,6 +599,29 @@ type BlockVote struct {
 type BlockPageMinMaxSlot struct {
 	MinSlot uint64
 	MaxSlot uint64
+}
+
+// BlockPageTransaction is a struct to hold execution transactions on the block page
+type BlockPageTransaction struct {
+	BlockSlot    uint64 `db:"block_slot"`
+	BlockIndex   uint64 `db:"block_index"`
+	TxHash       []byte `db:"txhash"`
+	AccountNonce uint64 `db:"nonce"`
+	// big endian
+	Price       []byte `db:"gas_price"`
+	PricePretty string
+	GasLimit    uint64 `db:"gas_limit"`
+	Sender      []byte `db:"sender"`
+	Recipient   []byte `db:"recipient"`
+	// big endian
+	Amount       []byte `db:"amount"`
+	AmountPretty string
+	Payload      []byte `db:"payload"`
+
+	// TODO: transaction type
+
+	MaxPriorityFeePerGas uint64 `db:"max_priority_fee_per_gas"`
+	MaxFeePerGas         uint64 `db:"max_fee_per_gas"`
 }
 
 // BlockPageAttestation is a struct to hold attestations on the block page
@@ -723,6 +765,11 @@ type SearchAheadEpochsResult []struct {
 type SearchAheadBlocksResult []struct {
 	Slot string `db:"slot" json:"slot,omitempty"`
 	Root string `db:"blockroot" json:"blockroot,omitempty"`
+}
+
+type SearchAheadTransactionsResult []struct {
+	Slot   string `db:"slot" json:"slot,omitempty"`
+	TxHash string `db:"txhash" json:"txhash,omitempty"`
 }
 
 // SearchAheadGraffitiResult is a struct to hold the search ahead blocks results with a given graffiti
@@ -1216,4 +1263,17 @@ type WebhookPageEvent struct {
 	EventLabel string
 	EventName
 	Active bool
+}
+
+type PoolsResp struct {
+	PoolsDistribution ChartsPageDataChart
+	PoolInfos         []*PoolInfo
+}
+
+type PoolInfo struct {
+	Name              string `db:"name"`
+	Count             int64  `db:"count"`
+	AvgPerformance31d int64  `db:"avg_performance_31d"`
+	AvgPerformance7d  int64  `db:"avg_performance_7d"`
+	AvgPerformance1d  int64  `db:"avg_performance_1d"`
 }

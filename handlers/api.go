@@ -61,7 +61,7 @@ func ApiHealthz(w http.ResponseWriter, r *http.Request) {
 	lastEpoch, err := db.GetLatestEpoch()
 
 	if err != nil {
-		http.Error(w, "Internal server error: could not retrieve latest epoch from the db", 503)
+		http.Error(w, "Internal server error: could not retrieve latest epoch from the db", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -78,7 +78,7 @@ func ApiHealthz(w http.ResponseWriter, r *http.Request) {
 
 	epochTime := utils.EpochToTime(lastEpoch)
 	if epochTime.Before(time.Now().Add(time.Minute * -13)) {
-		http.Error(w, "Internal server error: last epoch in db is more than 13 minutes old", 503)
+		http.Error(w, "Internal server error: last epoch in db is more than 13 minutes old", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -99,7 +99,7 @@ func ApiHealthzLoadbalancer(w http.ResponseWriter, r *http.Request) {
 	lastEpoch, err := db.GetLatestEpoch()
 
 	if err != nil {
-		http.Error(w, "Internal server error: could not retrieve latest epoch from the db", 503)
+		http.Error(w, "Internal server error: could not retrieve latest epoch from the db", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -430,7 +430,7 @@ func ApiSyncCommittee(w http.ResponseWriter, r *http.Request) {
 		period = utils.SyncPeriodOfEpoch(services.LatestEpoch()) + 1
 	}
 
-	rows, err := db.ReaderDb.Query(`SELECT period, period*$2 AS start_epoch, (period+1)*$2-1 AS end_epoch, ARRAY_AGG(validatorindex ORDER BY committeeindex) AS validators FROM sync_committees WHERE period = $1 GROUP BY period`, period, utils.Config.Chain.EpochsPerSyncCommitteePeriod)
+	rows, err := db.ReaderDb.Query(`SELECT period, period*$2 AS start_epoch, (period+1)*$2-1 AS end_epoch, ARRAY_AGG(validatorindex ORDER BY committeeindex) AS validators FROM sync_committees WHERE period = $1 GROUP BY period`, period, utils.Config.Chain.Config.EpochsPerSyncCommitteePeriod)
 	if err != nil {
 		logger.WithError(err).WithField("url", r.URL.String()).Errorf("error querying db")
 		sendErrorResponse(j, r.URL.String(), "could not retrieve db results")
@@ -2107,7 +2107,7 @@ func APIDashboardDataBalance(w http.ResponseWriter, r *http.Request) {
 
 	// get data from one week before latest epoch
 	latestEpoch := services.LatestEpoch()
-	oneWeekEpochs := uint64(3600 * 24 * 7 / float64(utils.Config.Chain.SecondsPerSlot*utils.Config.Chain.SlotsPerEpoch))
+	oneWeekEpochs := uint64(3600 * 24 * 7 / float64(utils.Config.Chain.Config.SecondsPerSlot*utils.Config.Chain.Config.SlotsPerEpoch))
 	queryOffsetEpoch := uint64(0)
 	if latestEpoch > oneWeekEpochs {
 		queryOffsetEpoch = latestEpoch - oneWeekEpochs
@@ -2128,7 +2128,7 @@ func APIDashboardDataBalance(w http.ResponseWriter, r *http.Request) {
 	err = db.ReaderDb.Select(&data, query, queryValidatorsArr, queryOffsetEpoch)
 	if err != nil {
 		logger.WithError(err).WithField("route", r.URL.String()).Errorf("error retrieving validator balance history")
-		http.Error(w, "Internal server error", 503)
+		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -2143,7 +2143,7 @@ func APIDashboardDataBalance(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(balanceHistoryChartData)
 	if err != nil {
 		logger.WithError(err).WithField("route", r.URL.String()).Error("error enconding json response")
-		http.Error(w, "Internal server error", 503)
+		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
 		return
 	}
 }

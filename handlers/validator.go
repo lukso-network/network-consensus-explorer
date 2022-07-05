@@ -65,7 +65,7 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	validatorPageData.PendingCount = *pendingCount
-	validatorPageData.InclusionDelay = int64((utils.Config.Chain.Phase0.Eth1FollowDistance*utils.Config.Chain.Phase0.SecondsPerETH1Block+utils.Config.Chain.Phase0.SecondsPerSlot*utils.Config.Chain.Phase0.SlotsPerEpoch*utils.Config.Chain.Phase0.EpochsPerEth1VotingPeriod)/3600) + 1
+	validatorPageData.InclusionDelay = int64((utils.Config.Chain.Config.Eth1FollowDistance*utils.Config.Chain.Config.SecondsPerEth1Block+utils.Config.Chain.Config.SecondsPerSlot*utils.Config.Chain.Config.SlotsPerEpoch*utils.Config.Chain.Config.EpochsPerEth1VotingPeriod)/3600) + 1
 
 	data := InitPageData(w, r, "validators", "/validators", "")
 	data.HeaderAd = true
@@ -92,15 +92,28 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 			// the validator might only have a public key but no index yet
 			var name string
 			err = db.ReaderDb.Get(&name, `SELECT name FROM validator_names WHERE publickey = $1`, pubKey)
-			if err != nil {
-				if err != sql.ErrNoRows {
-					logger.Errorf("error getting validator-name from db for pubKey %v: %v", pubKey, err)
-					http.Error(w, "Internal server error", http.StatusInternalServerError)
-					return
-				}
+			if err != nil && err != sql.ErrNoRows {
+				logger.Errorf("error getting validator-name from db for pubKey %v: %v", pubKey, err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
 				// err == sql.ErrNoRows -> unnamed
 			} else {
 				validatorPageData.Name = name
+			}
+
+			var pool string
+			err = db.ReaderDb.Get(&pool, `SELECT pool FROM validator_pool WHERE publickey = $1`, pubKey)
+			if err != nil && err != sql.ErrNoRows {
+				logger.Errorf("error getting validator-pool from db for pubKey %v: %v", pubKey, err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+				return
+				// err == sql.ErrNoRows -> (no pool set)
+			} else {
+				if validatorPageData.Name == "" {
+					validatorPageData.Name = fmt.Sprintf("Pool: %s", pool)
+				} else {
+					validatorPageData.Name += fmt.Sprintf(" / Pool: %s", pool)
+				}
 			}
 			deposits, err := db.GetValidatorDeposits(pubKey)
 			if err != nil {
@@ -141,7 +154,7 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 				*churnRate = 4
 				logger.Warning("Churn rate not set in config using 4 as default please set minPerEpochChurnLimit")
 			}
-			activationEstimate := (*pendingCount / *churnRate)*(utils.Config.Chain.Phase0.SecondsPerSlot*utils.Config.Chain.Phase0.SlotsPerEpoch) + uint64(latestDeposit)
+			activationEstimate := (*pendingCount / *churnRate)*(utils.Config.Chain.Config.SecondsPerSlot*utils.Config.Chain.Config.SlotsPerEpoch) + uint64(latestDeposit)
 			validatorPageData.EstimatedActivationTs = int64(activationEstimate)
 
 			for _, deposit := range validatorPageData.Deposits.Eth1Deposits {
@@ -226,6 +239,7 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 			validators.exitepoch,
 			validators.lastattestationslot,
 			COALESCE(validator_names.name, '') AS name,
+			COALESCE(validator_pool.pool, '') AS pool,
 			COALESCE(validators.balance, 0) AS balance,
 			COALESCE(validator_performance.rank7d, 0) AS rank7d,
 			COALESCE(validator_performance_count.total_count, 0) AS rank_count,
@@ -236,6 +250,7 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 			COALESCE((SELECT ARRAY_AGG(tag) FROM validator_tags WHERE publickey = validators.pubkey),'{}') AS tags
 		FROM validators
 		LEFT JOIN validator_names ON validators.pubkey = validator_names.publickey
+		LEFT JOIN validator_pool ON validators.pubkey = validator_pool.publickey
 		LEFT JOIN validator_performance ON validators.validatorindex = validator_performance.validatorindex
 		LEFT JOIN (SELECT MAX(validatorindex)+1 FROM validator_performance) validator_performance_count(total_count) ON true
 		WHERE validators.validatorindex = $1`, index)
@@ -252,6 +267,14 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 		logger.Errorf("error getting validator for %v route: %v", r.URL.String(), err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
+	}
+
+	if validatorPageData.Pool != "" {
+		if validatorPageData.Name == "" {
+			validatorPageData.Name = fmt.Sprintf("Pool: %s", validatorPageData.Pool)
+		} else {
+			validatorPageData.Name += fmt.Sprintf(" / Pool: %s", validatorPageData.Pool)
+		}
 	}
 
 	if validatorPageData.Rank7d > 0 && validatorPageData.RankCount > 0 {
@@ -422,7 +445,7 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 		lastDayDepositsSum += d.Amount
 	}
 
-	currentDay := validatorPageData.Epoch / ((24 * 60 * 60) / utils.Config.Chain.SlotsPerEpoch / utils.Config.Chain.SecondsPerSlot)
+	currentDay := validatorPageData.Epoch / ((24 * 60 * 60) / utils.Config.Chain.Config.SlotsPerEpoch / utils.Config.Chain.Config.SecondsPerSlot)
 
 	if len(incomeHistory) > 0 {
 		for i := 0; i < len(incomeHistory); i++ {
@@ -558,7 +581,7 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 	// logger.Infof("effectiveness data retrieved, elapsed: %v", time.Since(start))
 	// start = time.Now()
 
-	err = db.ReaderDb.Get(&validatorPageData.SyncCount, `SELECT count(*)*$1 FROM sync_committees WHERE validatorindex = $2`, utils.Config.Chain.EpochsPerSyncCommitteePeriod*utils.Config.Chain.SlotsPerEpoch, index)
+	err = db.ReaderDb.Get(&validatorPageData.SyncCount, `SELECT count(*)*$1 FROM sync_committees WHERE validatorindex = $2`, utils.Config.Chain.Config.EpochsPerSyncCommitteePeriod*utils.Config.Chain.Config.SlotsPerEpoch, index)
 	if err != nil {
 		logger.Errorf("error retrieving syncCount for validator %v: %v", index, err)
 		http.Error(w, "Internal server error", 503)
@@ -1511,7 +1534,7 @@ func ValidatorSync(w http.ResponseWriter, r *http.Request) {
 	err = db.ReaderDb.Select(&countData, `
 		SELECT count(*)*$1 AS totalcount, max(period) AS maxperiod 
 		FROM sync_committees 
-		WHERE validatorindex = $2`, utils.Config.Chain.EpochsPerSyncCommitteePeriod*utils.Config.Chain.SlotsPerEpoch, index)
+		WHERE validatorindex = $2`, utils.Config.Chain.Config.EpochsPerSyncCommitteePeriod*utils.Config.Chain.Config.SlotsPerEpoch, index)
 	if err != nil {
 		logger.WithError(err).Errorf("error getting countData of sync-assignments")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -1524,9 +1547,9 @@ func ValidatorSync(w http.ResponseWriter, r *http.Request) {
 	if len(countData) > 0 {
 		// only show 1 scheduled slot in the sync-table
 		totalCount = countData[0].TotalCount
-		futureSlotsThreshold := (services.LatestEpoch()+1)*utils.Config.Chain.SlotsPerEpoch + 1
-		firstSyncSlot := countData[0].MaxPeriod * utils.Config.Chain.EpochsPerSyncCommitteePeriod * utils.Config.Chain.SlotsPerEpoch
-		lastSyncSlot := (countData[0].MaxPeriod + 1) * utils.Config.Chain.EpochsPerSyncCommitteePeriod * utils.Config.Chain.SlotsPerEpoch
+		futureSlotsThreshold := (services.LatestEpoch()+1)*utils.Config.Chain.Config.SlotsPerEpoch + 1
+		firstSyncSlot := countData[0].MaxPeriod * utils.Config.Chain.Config.EpochsPerSyncCommitteePeriod * utils.Config.Chain.Config.SlotsPerEpoch
+		lastSyncSlot := (countData[0].MaxPeriod + 1) * utils.Config.Chain.Config.EpochsPerSyncCommitteePeriod * utils.Config.Chain.Config.SlotsPerEpoch
 		if futureSlotsThreshold < lastSyncSlot {
 			totalCount = futureSlotsThreshold - firstSyncSlot
 		}

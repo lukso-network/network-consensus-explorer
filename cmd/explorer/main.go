@@ -15,6 +15,7 @@ import (
 	"eth2-exporter/version"
 	"flag"
 	"fmt"
+	"math/big"
 	"net/http"
 	"time"
 
@@ -44,16 +45,16 @@ func initStripe(http *mux.Router) error {
 }
 
 func main() {
-	configPath := flag.String("config", "config/default.config.yml", "Path to the config file")
+	configPath := flag.String("config", "", "Path to the config file, if empty string defaults will be used")
 	flag.Parse()
 
-	logrus.WithField("config", *configPath).WithField("version", version.Version).Printf("starting")
 	cfg := &types.Config{}
 	err := utils.ReadConfig(cfg, *configPath)
 	if err != nil {
 		logrus.Fatalf("error reading config file: %v", err)
 	}
 	utils.Config = cfg
+	logrus.WithField("config", *configPath).WithField("version", version.Version).WithField("chainName", utils.Config.Chain.Config.ConfigName).Printf("starting")
 
 	db.MustInitDB(&types.DatabaseConfig{
 		Username: cfg.WriterDatabase.Username,
@@ -70,13 +71,12 @@ func main() {
 	})
 	defer db.ReaderDb.Close()
 	defer db.WriterDb.Close()
-
 	db.MustInitFrontendDB(&types.DatabaseConfig{
 		Username: cfg.Frontend.WriterDatabase.Username,
 		Password: cfg.Frontend.WriterDatabase.Password,
 		Name:     cfg.Frontend.WriterDatabase.Name,
 		Host:     cfg.Frontend.WriterDatabase.Host,
-		Port:     cfg.WriterDatabase.Port,
+		Port:     cfg.Frontend.WriterDatabase.Port,
 	}, &types.DatabaseConfig{
 		Username: cfg.Frontend.ReaderDatabase.Username,
 		Password: cfg.Frontend.ReaderDatabase.Password,
@@ -97,24 +97,25 @@ func main() {
 	}
 
 	logrus.Infof("database connection established")
-	if utils.Config.Chain.SlotsPerEpoch == 0 || utils.Config.Chain.SecondsPerSlot == 0 {
+	if utils.Config.Chain.Config.SlotsPerEpoch == 0 || utils.Config.Chain.Config.SecondsPerSlot == 0 {
 		logrus.Fatal("invalid chain configuration specified, you must specify the slots per epoch, seconds per slot and genesis timestamp in the config file")
 	}
 
 	if utils.Config.Indexer.Enabled {
 		var rpcClient rpc.Client
 
+		chainID := new(big.Int).SetUint64(utils.Config.Chain.Config.DepositChainID)
 		if utils.Config.Indexer.Node.Type == "prysm" {
 			if utils.Config.Indexer.Node.PageSize == 0 {
 				logrus.Printf("setting default rpc page size to 500")
 				utils.Config.Indexer.Node.PageSize = 500
 			}
-			rpcClient, err = rpc.NewPrysmClient(cfg.Indexer.Node.Host + ":" + cfg.Indexer.Node.Port)
+			rpcClient, err = rpc.NewPrysmClient(cfg.Indexer.Node.Host+":"+cfg.Indexer.Node.Port, chainID)
 			if err != nil {
 				logrus.Fatal(err)
 			}
 		} else if utils.Config.Indexer.Node.Type == "lighthouse" {
-			rpcClient, err = rpc.NewLighthouseClient("http://" + cfg.Indexer.Node.Host + ":" + cfg.Indexer.Node.Port)
+			rpcClient, err = rpc.NewLighthouseClient("http://"+cfg.Indexer.Node.Host+":"+cfg.Indexer.Node.Port, chainID)
 			if err != nil {
 				logrus.Fatal(err)
 			}
@@ -315,8 +316,8 @@ func main() {
 			router.HandleFunc("/ethClients", handlers.EthClientsServices).Methods("GET")
 			if utils.Config.Frontend.PoolsUpdater.Enabled {
 				router.HandleFunc("/pools", handlers.Pools).Methods("GET")
-				router.HandleFunc("/pools/streak/current", handlers.GetAvgCurrentStreak).Methods("GET")
-				router.HandleFunc("/pools/chart/income_per_eth", handlers.GetIncomePerEthChart).Methods("GET")
+				// router.HandleFunc("/pools/streak/current", handlers.GetAvgCurrentStreak).Methods("GET")
+				// router.HandleFunc("/pools/chart/income_per_eth", handlers.GetIncomePerEthChart).Methods("GET")
 			}
 			router.HandleFunc("/pools/rocketpool", handlers.PoolsRocketpool).Methods("GET")
 			router.HandleFunc("/pools/rocketpool/data/minipools", handlers.PoolsRocketpoolDataMinipools).Methods("GET")
@@ -467,7 +468,7 @@ func main() {
 	}
 
 	if utils.Config.Frontend.PoolsUpdater.Enabled {
-		services.InitPools() // making sure the website is available before updating
+		// services.InitPools() // making sure the website is available before updating
 	}
 
 	utils.WaitForCtrlC()

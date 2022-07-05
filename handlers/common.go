@@ -19,7 +19,7 @@ var pkeyRegex = regexp.MustCompile("[^0-9A-Fa-f]+")
 
 func GetValidatorOnlineThresholdSlot() uint64 {
 	latestProposedSlot := services.LatestProposedSlot()
-	threshold := utils.Config.Chain.SlotsPerEpoch * 2
+	threshold := utils.Config.Chain.Config.SlotsPerEpoch * 2
 
 	var validatorOnlineThresholdSlot uint64
 	if latestProposedSlot < 1 || latestProposedSlot < threshold {
@@ -162,7 +162,7 @@ func LatestState(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("error sending latest index page data: %v", err)
-		http.Error(w, "Internal server error", 503)
+		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
 		return
 	}
 }

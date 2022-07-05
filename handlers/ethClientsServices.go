@@ -52,6 +52,10 @@ func EthClientsServices(w http.ResponseWriter, r *http.Request) {
 				pageData.Teku.IsUserSubscribed = true
 			case "nimbus":
 				pageData.Nimbus.IsUserSubscribed = true
+			case "erigon":
+				pageData.Erigon.IsUserSubscribed = true
+			case "rocketpool":
+				pageData.RocketpoolSmartnode.IsUserSubscribed = true
 			default:
 				continue
 			}
@@ -64,7 +68,7 @@ func EthClientsServices(w http.ResponseWriter, r *http.Request) {
 	err = ethClientsServicesTemplate.ExecuteTemplate(w, "layout", data)
 	if err != nil {
 		logger.Errorf("error executing template for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", 503)
+		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
 		return
 	}
 }
