@@ -1878,7 +1878,7 @@ func internUserNotificationsSubscribe(event, filter string, threshold float64, w
 			// rocketpool thresholds are free
 		}
 		network := utils.GetNetwork()
-		if eventName == types.EthClientUpdateEventName {
+		if eventName == types.EthClientUpdateEventName || strings.HasPrefix(string(eventName), "monitoring_") {
 			network = ""
 		}
 
@@ -2069,9 +2069,12 @@ func internUserNotificationsUnsubscribe(event, filter string, w http.ResponseWri
 				}
 			}
 		} else {
-
+			network := utils.GetNetwork()
+			if eventName == types.EthClientUpdateEventName || strings.HasPrefix(string(eventName), "monitoring_") {
+				network = ""
+			}
 			// filtered one only
-			err = db.DeleteSubscription(user.UserID, utils.GetNetwork(), eventName, filter)
+			err = db.DeleteSubscription(user.UserID, network, eventName, filter)
 			if err != nil {
 				logger.Errorf("error could not REMOVE subscription for user %v eventName %v eventfilter %v: %v", user.UserID, eventName, filter, err)
 				ErrorOrJSONResponse(w, r, "Internal server error", http.StatusInternalServerError)
@@ -2142,8 +2145,12 @@ func UserNotificationsUnsubscribe(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
+		network := utils.GetNetwork()
+		if eventName == types.EthClientUpdateEventName || strings.HasPrefix(string(eventName), "monitoring_") {
+			network = ""
+		}
 		// filtered one only
-		err = db.DeleteSubscription(user.UserID, utils.GetNetwork(), eventName, filter)
+		err = db.DeleteSubscription(user.UserID, network, eventName, filter)
 		if err != nil {
 			logger.Errorf("error could not REMOVE subscription for user %v eventName %v eventfilter %v: %v", user.UserID, eventName, filter, err)
 			ErrorOrJSONResponse(w, r, "Internal server error", http.StatusInternalServerError)
@@ -2434,9 +2441,13 @@ func NotificationWebhookPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	webhookRows := make([]types.UserWebhookRow, 0)
-
 	for _, wh := range webhooks {
-		url, _ := r.URL.Parse(wh.Url)
+
+		url, err := r.URL.Parse(wh.Url)
+		if err != nil {
+			logger.WithError(err).Error("error parsing URL for webhook")
+			wh.Url = "Invalid URL"
+		}
 		// events := template.HTML{}
 
 		// for _, ev := range wh.EventNames {
@@ -2446,17 +2457,17 @@ func NotificationWebhookPage(w http.ResponseWriter, r *http.Request) {
 		events := make([]types.WebhookPageEvent, 0, 7)
 
 		events = append(events, types.WebhookPageEvent{
-			EventLabel: "Missed Attestations",
+			EventLabel: "Attestation Missed",
 			EventName:  types.ValidatorMissedAttestationEventName,
 			Active:     utils.ElementExists(wh.EventNames, string(types.ValidatorMissedAttestationEventName)),
 		})
 		events = append(events, types.WebhookPageEvent{
-			EventLabel: "Missed Proposals",
+			EventLabel: "Proposal Missed",
 			EventName:  types.ValidatorMissedProposalEventName,
 			Active:     utils.ElementExists(wh.EventNames, string(types.ValidatorMissedProposalEventName)),
 		})
 		events = append(events, types.WebhookPageEvent{
-			EventLabel: "Submitted Proposals",
+			EventLabel: "Proposal Submitted",
 			EventName:  types.ValidatorExecutedProposalEventName,
 			Active:     utils.ElementExists(wh.EventNames, string(types.ValidatorExecutedProposalEventName)),
 		})
@@ -2464,6 +2475,11 @@ func NotificationWebhookPage(w http.ResponseWriter, r *http.Request) {
 			EventLabel: "Slashed",
 			EventName:  types.ValidatorGotSlashedEventName,
 			Active:     utils.ElementExists(wh.EventNames, string(types.ValidatorGotSlashedEventName)),
+		})
+		events = append(events, types.WebhookPageEvent{
+			EventLabel: "Sync Commitee Soon",
+			EventName:  types.SyncCommitteeSoon,
+			Active:     utils.ElementExists(wh.EventNames, string(types.SyncCommitteeSoon)),
 		})
 		events = append(events, types.WebhookPageEvent{
 			EventLabel: "Machine Offline",
@@ -2506,11 +2522,18 @@ func NotificationWebhookPage(w http.ResponseWriter, r *http.Request) {
 			whErr.ContentResponse = template.HTML(fmt.Sprintf(`<pre><code>%v</code></pre>`, wh.Response.String))
 		}
 
+		hostname := ""
+		if url != nil {
+			hostname = url.Hostname()
+		} else {
+			hostname = wh.Url
+		}
+
 		webhookRows = append(webhookRows, types.UserWebhookRow{
 			ID:           wh.ID,
 			Retries:      template.HTML(fmt.Sprintf("%d", wh.Retries)),
 			UrlFull:      wh.Url,
-			Url:          template.HTML(fmt.Sprintf(`<span>%v</span><span style="margin-left: .5rem;">%v</span>`, url.Hostname(), utils.CopyButton(wh.Url))),
+			Url:          template.HTML(fmt.Sprintf(`<span>%v</span><span style="margin-left: .5rem;">%v</span>`, hostname, utils.CopyButton(wh.Url))),
 			LastSent:     ls,
 			Events:       events,
 			Discord:      isDiscord,
@@ -2528,20 +2551,24 @@ func NotificationWebhookPage(w http.ResponseWriter, r *http.Request) {
 	events := make([]types.WebhookPageEvent, 0, 7)
 
 	events = append(events, types.WebhookPageEvent{
-		EventLabel: "Missed Attestations",
+		EventLabel: "Attestation Missed",
 		EventName:  types.ValidatorMissedAttestationEventName,
 	})
 	events = append(events, types.WebhookPageEvent{
-		EventLabel: "Missed Proposals",
+		EventLabel: "Proposal Missed",
 		EventName:  types.ValidatorMissedProposalEventName,
 	})
 	events = append(events, types.WebhookPageEvent{
-		EventLabel: "Submitted Proposals",
+		EventLabel: "Proposal Submitted",
 		EventName:  types.ValidatorExecutedProposalEventName,
 	})
 	events = append(events, types.WebhookPageEvent{
-		EventLabel: "Slashed",
+		EventLabel: "Got Slashed",
 		EventName:  types.ValidatorGotSlashedEventName,
+	})
+	events = append(events, types.WebhookPageEvent{
+		EventLabel: "Sync Commitee Soon",
+		EventName:  types.SyncCommitteeSoon,
 	})
 	events = append(events, types.WebhookPageEvent{
 		EventLabel: "Machine Offline",
@@ -2557,6 +2584,8 @@ func NotificationWebhookPage(w http.ResponseWriter, r *http.Request) {
 	})
 
 	pageData.Events = events
+
+	pageData.Flashes = utils.GetFlashes(w, r, authSessionName)
 
 	data.Data = pageData
 
@@ -2575,14 +2604,15 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		logger.WithError(err).Errorf("error parsing form")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong adding your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
 	// const VALIDATOR_EVENTS = ['validator_attestation_missed', 'validator_proposal_missed', 'validator_proposal_submitted', 'validator_got_slashed', 'validator_synccommittee_soon']
 	// const MONITORING_EVENTS = ['monitoring_machine_offline', 'monitoring_hdd_almostfull', 'monitoring_cpu_load']
 
-	url := r.FormValue("url")
+	urlForm := r.FormValue("url")
 
 	destination := "webhook"
 
@@ -2590,6 +2620,7 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 	validatorProposalMissed := "on" == r.FormValue(string(types.ValidatorMissedProposalEventName))
 	validatorProposalSubmitted := "on" == r.FormValue(string(types.ValidatorExecutedProposalEventName))
 	validatorGotSlashed := "on" == r.FormValue(string(types.ValidatorGotSlashedEventName))
+	validatorSyncCommiteeSoon := "on" == r.FormValue(string(types.SyncCommitteeSoon))
 	monitoringMachineOffline := "on" == r.FormValue(string(types.MonitoringMachineOfflineEventName))
 	monitoringHddAlmostfull := "on" == r.FormValue(string(types.MonitoringMachineDiskAlmostFullEventName))
 	monitoringCpuLoad := "on" == r.FormValue(string(types.MonitoringMachineCpuLoadEventName))
@@ -2607,6 +2638,7 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 	events[string(types.ValidatorMissedProposalEventName)] = validatorProposalMissed
 	events[string(types.ValidatorExecutedProposalEventName)] = validatorProposalSubmitted
 	events[string(types.ValidatorGotSlashedEventName)] = validatorGotSlashed
+	events[string(types.SyncCommitteeSoon)] = validatorSyncCommiteeSoon
 	events[string(types.MonitoringMachineOfflineEventName)] = monitoringMachineOffline
 	events[string(types.MonitoringMachineDiskAlmostFullEventName)] = monitoringHddAlmostfull
 	events[string(types.MonitoringMachineCpuLoadEventName)] = monitoringCpuLoad
@@ -2625,7 +2657,8 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 	tx, err := db.FrontendWriterDB.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
 		logger.WithError(err).Errorf("error beginning transaction")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong adding your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 	defer tx.Rollback()
@@ -2634,7 +2667,8 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 	err = tx.Get(&webhookCount, `SELECT count(*) from users_webhooks where user_id = $1`, user.UserID)
 	if err != nil {
 		logger.WithError(err).Errorf("error getting webhook count")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong adding your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
@@ -2644,7 +2678,8 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 	err = tx.Get(&activeAPP, `SELECT count(*) from users_app_subscriptions where active = 't' and user_id = $1;`, user.UserID)
 	if err != nil {
 		logger.WithError(err).Errorf("error getting app subscription count")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong adding your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
@@ -2656,7 +2691,8 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 	err = db.FrontendWriterDB.GetContext(ctx, &activeAPI, `SELECT count(*) from users_stripe_subscriptions us join users u on u.stripe_customer_id = us.customer_id where active = 't' and u.id = $1;`, user.UserID)
 	if err != nil {
 		logger.WithError(err).Errorf("error getting api subscription count")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong adding your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
@@ -2666,20 +2702,37 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 
 	if webhookCount >= allowed {
 		http.Error(w, "Too man webhooks exist already", 400)
+		utils.SetFlash(w, r, authSessionName, "Error: We could not add another webhook, you've already reached the maximum allowed, which.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
-	_, err = tx.Exec(`INSERT INTO users_webhooks (user_id, url, event_names, destination) VALUES ($1, $2, $3, $4)`, user.UserID, url, pq.StringArray(eventNames), destination)
+	urlValid := ""
+
+	urlParsed, err := url.Parse(urlForm)
+	if err != nil {
+		logger.WithError(err).Errorf("could not parse url: %v", urlForm)
+		utils.SetFlash(w, r, authSessionName, "Error: The URL provided is invalid.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
+		return
+	}
+
+	if urlParsed != nil {
+		urlValid = urlForm
+	}
+
+	_, err = tx.Exec(`INSERT INTO users_webhooks (user_id, url, event_names, destination) VALUES ($1, $2, $3, $4)`, user.UserID, urlValid, pq.StringArray(eventNames), destination)
 	if err != nil {
 		logger.WithError(err).Errorf("error inserting a new webhook for user")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong adding your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		logger.WithError(err).Errorf("error for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", 503)
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
@@ -2692,7 +2745,8 @@ func UsersEditWebhook(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
 		logger.WithError(err).Errorf("error parsing form")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong editing your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
@@ -2703,7 +2757,7 @@ func UsersEditWebhook(w http.ResponseWriter, r *http.Request) {
 	// const VALIDATOR_EVENTS = ['validator_attestation_missed', 'validator_proposal_missed', 'validator_proposal_submitted', 'validator_got_slashed', 'validator_synccommittee_soon']
 	// const MONITORING_EVENTS = ['monitoring_machine_offline', 'monitoring_hdd_almostfull', 'monitoring_cpu_load']
 
-	url := r.FormValue("url")
+	urlForm := r.FormValue("url")
 
 	destination := "webhook"
 
@@ -2711,6 +2765,7 @@ func UsersEditWebhook(w http.ResponseWriter, r *http.Request) {
 	validatorProposalMissed := "on" == r.FormValue(string(types.ValidatorMissedProposalEventName))
 	validatorProposalSubmitted := "on" == r.FormValue(string(types.ValidatorExecutedProposalEventName))
 	validatorGotSlashed := "on" == r.FormValue(string(types.ValidatorGotSlashedEventName))
+	validatorSyncCommiteeSoon := "on" == r.FormValue(string(types.SyncCommitteeSoon))
 	monitoringMachineOffline := "on" == r.FormValue(string(types.MonitoringMachineOfflineEventName))
 	monitoringHddAlmostfull := "on" == r.FormValue(string(types.MonitoringMachineDiskAlmostFullEventName))
 	monitoringCpuLoad := "on" == r.FormValue(string(types.MonitoringMachineCpuLoadEventName))
@@ -2728,6 +2783,7 @@ func UsersEditWebhook(w http.ResponseWriter, r *http.Request) {
 	events[string(types.ValidatorMissedProposalEventName)] = validatorProposalMissed
 	events[string(types.ValidatorExecutedProposalEventName)] = validatorProposalSubmitted
 	events[string(types.ValidatorGotSlashedEventName)] = validatorGotSlashed
+	events[string(types.SyncCommitteeSoon)] = validatorSyncCommiteeSoon
 	events[string(types.MonitoringMachineOfflineEventName)] = monitoringMachineOffline
 	events[string(types.MonitoringMachineDiskAlmostFullEventName)] = monitoringHddAlmostfull
 	events[string(types.MonitoringMachineCpuLoadEventName)] = monitoringCpuLoad
@@ -2746,22 +2802,39 @@ func UsersEditWebhook(w http.ResponseWriter, r *http.Request) {
 	tx, err := db.FrontendWriterDB.BeginTxx(ctx, &sql.TxOptions{})
 	if err != nil {
 		logger.WithError(err).Errorf("error beginning transaction")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong editing your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec(`UPDATE users_webhooks set url = $1, event_names = $2, destination = $3 where user_id = $4 and id = $5`, url, pq.StringArray(eventNames), destination, user.UserID, webhookID)
+	urlValid := ""
+
+	urlParsed, err := url.Parse(urlForm)
+	if err != nil {
+		logger.WithError(err).Errorf("could not parse url: %v", urlForm)
+		utils.SetFlash(w, r, authSessionName, "Error: the URL you have provided is invalid.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
+		return
+	}
+
+	if urlParsed != nil {
+		urlValid = urlForm
+	}
+
+	_, err = tx.Exec(`UPDATE users_webhooks set url = $1, event_names = $2, destination = $3 where user_id = $4 and id = $5`, urlValid, pq.StringArray(eventNames), destination, user.UserID, webhookID)
 	if err != nil {
 		logger.WithError(err).Errorf("error update webhook for user")
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong editing your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 
 	err = tx.Commit()
 	if err != nil {
 		logger.WithError(err).Errorf("error for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", 503)
+		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong editing your webhook, please try again in a bit.")
+		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
 	}
 	http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
