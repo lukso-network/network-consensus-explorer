@@ -73,7 +73,7 @@ var ethClientsMux = &sync.RWMutex{}
 var bannerClients = []clientUpdateInfo{}
 var bannerClientsMux = &sync.RWMutex{}
 
-// Init starts a go routine to update the ETH Clients Info
+// Init starts a go routine to update the LYXt Clients Info
 func Init() {
 	go update()
 }
@@ -84,7 +84,7 @@ func fetchClientData(repo string) *gitAPIResponse {
 	// resp, err := http.Get("http://localhost:5000/repos" + repo)
 
 	if err != nil {
-		logger.Errorf("error retrieving ETH Client Data: %v", err)
+		logger.Errorf("error retrieving LYXt Client Data: %v", err)
 		return nil
 	}
 
@@ -93,7 +93,7 @@ func fetchClientData(repo string) *gitAPIResponse {
 	err = json.NewDecoder(resp.Body).Decode(&gitAPI)
 
 	if err != nil {
-		logger.Errorf("error decoding ETH Clients json response to struct: %v", err)
+		logger.Errorf("error decoding LYXt Clients json response to struct: %v", err)
 		return nil
 	}
 
@@ -106,7 +106,7 @@ func fetchClientNetworkShare() []ethernodesAPIStruct {
 	resp, err := http.Get("https://ethernodes.org/api/clients")
 
 	if err != nil {
-		logger.Errorf("error retrieving ETH Clients Network Share Data: %v", err)
+		logger.Errorf("error retrieving LYXt Clients Network Share Data: %v", err)
 		return ethernodesAPI
 	}
 
@@ -115,7 +115,7 @@ func fetchClientNetworkShare() []ethernodesAPIStruct {
 	err = json.NewDecoder(resp.Body).Decode(&ethernodesAPI)
 
 	if err != nil {
-		logger.Errorf("error decoding ETH Clients Network Share json response to struct: %v", err)
+		logger.Errorf("error decoding LYXt Clients Network Share json response to struct: %v", err)
 	}
 
 	return ethernodesAPI
@@ -229,7 +229,7 @@ func updateEthClient() {
 		return
 	}
 
-	logger.Println("Updating ETH Clients Information")
+	logger.Println("Updating LYXt Clients Information")
 	ethClientsMux.Lock()
 	defer ethClientsMux.Unlock()
 	bannerClientsMux.Lock()
