@@ -40,19 +40,19 @@ jobs:
         id: make-commit
         run: |
           git add -A
-          git commit -m "Lukso rebrand after new version release of Consensus Explorer"
+          git commit -m "[Automated Commit] Change ETH to LYX"
 
       - name: Push new branch
-        run: git push origin release/lukso-rebranding
+        run: git push origin release/lukso-automation
 
       - name: Create pull request into main
         uses: thomaseizinger/create-pull-request@1.0.0
         with:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          head: release/lukso-rebranding
+          head: release/lukso-automation
           base: master
-          title: release/lukso-rebranding into master
-          reviewers: ${{ github.event.issue.user.login }}
+          title: [Automated PR] Find and replace currency 
           body: |
-              Hi!
-              This PR was created in response workflow running
+              This PR was created in response of workflow running on weekly basis or manual trigger.
+              This is a forked repo of https://github.com/gobitfly/eth2-beaconchain-explorer which is activly maintained.
+              The workflow checks on a weekly basis for new updates and merges it into our repo, afterwards this Automated PR is created to rebrand the application. 
