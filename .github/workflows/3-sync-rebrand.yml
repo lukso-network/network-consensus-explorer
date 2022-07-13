@@ -3,7 +3,7 @@ name: Sync and rebrand
 on:
   workflow_dispatch:
   schedule:
-  - cron: "0 0 * * *"
+  - cron: "0 0 * * FRI"
 
 jobs:
   sync:
@@ -21,7 +21,7 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Create release branch
-        run: git checkout -b release/lukso-rebranding
+        run: git checkout -b release/lukso-automation
 
       - name: Initialize mandatory git config
         run: |
