@@ -42,11 +42,18 @@ jobs:
           git add -A
           git commit -m "[Automated Commit] Change ETH to LYX"
 
-      - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.36.0
-        env:
+      - id: release
+        uses: rymndhng/release-on-push-action@master
+        with:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          WITH_V: true
+          bump_version_scheme: minor
+          tag_prefix: v
+          
+      # - name: Bump version and push tag
+      #   uses: anothrNick/github-tag-action@1.36.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      #     WITH_V: true
 
       # - name: Push new branch
       #   run: git push origin release/lukso-automation
