@@ -363,7 +363,7 @@ func DashboardDataValidators(w http.ResponseWriter, r *http.Request) {
 		// 	v.MissedAttestations,
 		// })
 
-		// tableData[i] = append(tableData[i], fmt.Sprintf("%.4f ETH", float64(v.Performance7d)/float64(1e9)))
+		// tableData[i] = append(tableData[i], fmt.Sprintf("%.4f LYXE", float64(v.Performance7d)/float64(1e9)))
 		tableData[i] = append(tableData[i], utils.FormatIncome(v.Performance7d, currency))
 	}
 
