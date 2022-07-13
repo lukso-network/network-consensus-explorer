@@ -20,13 +20,13 @@ jobs:
           downstream_branch: master
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Create release branch
-        run: git checkout -b release/lukso-automation
+      # - name: Create release branch
+      #   run: git checkout -b release/lukso-automation
 
-      - name: Initialize mandatory git config
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email noreply@github.com
+      # - name: Initialize mandatory git config
+      #   run: |
+      #     git config user.name "GitHub Actions"
+      #     git config user.email noreply@github.com
 
       - name: Replace ETH currencies
         uses: jacobtomlinson/gha-find-replace@v2
@@ -42,17 +42,23 @@ jobs:
           git add -A
           git commit -m "[Automated Commit] Change ETH to LYX"
 
-      - name: Push new branch
-        run: git push origin release/lukso-automation
-
-      - name: Create pull request into master
-        uses: thomaseizinger/create-pull-request@1.0.0
-        with:
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          head: release/lukso-automation
-          base: master
-          title: "[Automated PR] Find and replace currency"
-          body: |
-            This PR was created in response of workflow running on weekly basis or manual trigger.
-            This is a forked repo of https://github.com/gobitfly/eth2-beaconchain-explorer which is activly maintained.
-            The workflow checks on a weekly basis for new updates and merges it into our repo, afterwards this Automated PR is created to rebrand the application.
+          WITH_V: true
+
+      # - name: Push new branch
+      #   run: git push origin release/lukso-automation
+
+      # - name: Create pull request into master
+      #   uses: thomaseizinger/create-pull-request@1.0.0
+      #   with:
+      #     GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      #     head: release/lukso-automation
+      #     base: master
+      #     title: "[Automated PR] Find and replace currency"
+      #     body: |
+      #       This PR was created in response of workflow running on weekly basis or manual trigger.
+      #       This is a forked repo of https://github.com/gobitfly/eth2-beaconchain-explorer which is activly maintained.
+      #       The workflow checks on a weekly basis for new updates and merges it into our repo, afterwards this Automated PR is created to rebrand the application.
