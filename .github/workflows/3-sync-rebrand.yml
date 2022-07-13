@@ -48,11 +48,11 @@ jobs:
       - name: Create pull request into main
         uses: thomaseizinger/create-pull-request@1.0.0
         with:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-        head: release/lukso-rebranding
-        base: master
-        title: release/lukso-rebranding into master
-        reviewers: ${{ github.event.issue.user.login }}
-        body: |
-            Hi!
-            This PR was created in response workflow running
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          head: release/lukso-rebranding
+          base: master
+          title: release/lukso-rebranding into master
+          reviewers: ${{ github.event.issue.user.login }}
+          body: |
+              Hi!
+              This PR was created in response workflow running
