@@ -44,8 +44,12 @@ jobs:
           git add -A
           git commit -m "[Automated Commit] Change ETH to LYX"
 
-      - uses: some/get-commit-action@v1
+      - uses: nrwl/last-successful-commit-action@v1
         id: some-get-commit-action
+        with:
+          github_token: ${{ secrets.GH_TOKEN }}
+          branch: 'master'
+          workflow_id: '3-sync-rebrand.yml'
 
       - uses: christophebedard/tag-version-commit@v1
         if: ${{ steps.some-get-commit-action.outputs.commit != '' }}
