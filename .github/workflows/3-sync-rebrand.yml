@@ -43,6 +43,7 @@ jobs:
         run: |
           git add -A
           git commit -m "[Automated Commit] Change ETH to LYX"
+          git push origin master
 
       - id: release
         uses: rymndhng/release-on-push-action@master
