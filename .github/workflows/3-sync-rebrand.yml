@@ -20,10 +20,39 @@ jobs:
           downstream_branch: master
           token: ${{ secrets.GH_TOKEN }}
 
-      - name: Find and Replace
+      - name: Create release branch
+        run: git checkout -b release/lukso-rebranding
+
+      - name: Initialize mandatory git config
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email noreply@github.com
+
+      - name: Replace ETH currencies
         uses: jacobtomlinson/gha-find-replace@v2
         with:
           find: '\bETH\b'
           replace: "LYXE"
           regex: true
           exclude: ".git**"
+
+      - name: Commit changelog and manifest files
+        id: make-commit
+        run: |
+          git add -A
+          git commit -m "Lukso rebrand after new version release of Consensus Explorer"
+
+      - name: Push new branch
+        run: git push origin release/lukso-rebranding
+
+      - name: Create pull request into main
+        uses: thomaseizinger/create-pull-request@1.0.0
+        with:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        head: release/lukso-rebranding
+        base: master
+        title: release/lukso-rebranding into master
+        reviewers: ${{ github.event.issue.user.login }}
+        body: |
+            Hi!
+            This PR was created in response workflow running
