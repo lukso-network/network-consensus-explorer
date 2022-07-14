@@ -100,7 +100,7 @@ func FormatBalanceSql(balanceInt sql.NullInt64, currency string) template.HTML {
 }
 
 func FormatBalanceGwei(balance *int64, currency string) template.HTML {
-	if currency == "ETH" {
+	if currency == "LYXE" {
 		balanceF := float64(*balance)
 		if balance == nil {
 			return template.HTML("<span> 0.00000 " + currency + "</span>")
@@ -119,15 +119,15 @@ func FormatBalanceGwei(balance *int64, currency string) template.HTML {
 // FormatBalanceChange will return a string for a balance change
 func FormatBalanceChange(balance *int64, currency string) template.HTML {
 	balanceF := float64(*balance) / float64(1e9)
-	if currency == "ETH" {
+	if currency == "LYXE" {
 		if balance == nil || *balance == 0 {
 			return template.HTML("<span> 0 " + currency + "</span>")
 		}
 
 		if balanceF < 0 {
-			return template.HTML(fmt.Sprintf("<span title=\"%.0f GWei\" data-toggle=\"tooltip\" class=\"text-danger\">%.5f ETH</span>", float64(*balance), balanceF))
+			return template.HTML(fmt.Sprintf("<span title=\"%.0f GWei\" data-toggle=\"tooltip\" class=\"text-danger\">%.5f LYXE</span>", float64(*balance), balanceF))
 		}
-		return template.HTML(fmt.Sprintf("<span title=\"%.0f GWei\" data-toggle=\"tooltip\" class=\"text-success\">+%.5f ETH</span>", float64(*balance), balanceF))
+		return template.HTML(fmt.Sprintf("<span title=\"%.0f GWei\" data-toggle=\"tooltip\" class=\"text-success\">+%.5f LYXE</span>", float64(*balance), balanceF))
 	} else {
 		if balance == nil {
 			return template.HTML("<span> 0 " + currency + "</span>")
@@ -237,7 +237,7 @@ func FormatBlockStatusShort(status uint64) template.HTML {
 
 // FormatCurrentBalance will return the current balance formated as string with 9 digits after the comma (1 gwei = 1e9 eth)
 func FormatCurrentBalance(balanceInt uint64, currency string) template.HTML {
-	if currency == "ETH" {
+	if currency == "LYXE" {
 		exchangeRate := ExchangeRateForCurrency(currency)
 		balance := float64(balanceInt) / float64(1e9)
 		return template.HTML(fmt.Sprintf("%.5f %v", balance*exchangeRate, currency))
@@ -489,7 +489,7 @@ func FormatIncome(balanceInt int64, currency string) template.HTML {
 
 	decimals := 2
 
-	if currency == "ETH" {
+	if currency == "LYXE" {
 		decimals = 5
 	}
 

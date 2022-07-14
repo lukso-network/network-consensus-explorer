@@ -199,7 +199,7 @@ func indexPageDataUpdater() {
 }
 
 func getIndexPageData() (*types.IndexPageData, error) {
-	currency := "ETH"
+	currency := "LYXE"
 
 	data := &types.IndexPageData{}
 	data.Mainnet = utils.Config.Chain.Config.ConfigName == "mainnet"
