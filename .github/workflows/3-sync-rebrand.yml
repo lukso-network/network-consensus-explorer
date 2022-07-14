@@ -8,8 +8,6 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
     steps:
       - uses: actions/checkout@v2
@@ -22,8 +20,8 @@ jobs:
           downstream_branch: master
           token: ${{ secrets.GH_TOKEN }}
 
-      # - name: Create release branch
-      #   run: git checkout -b release/lukso-automation
+      - name: Create release branch
+        run: git checkout -b release/lukso-automation
 
       - name: Initialize mandatory git config
         run: |
@@ -44,43 +42,29 @@ jobs:
           git add -A
           git commit -m "[Automated Commit] Change ETH to LYX"
 
-      - uses: nrwl/last-successful-commit-action@v1
-        id: some-get-commit-action
+      - id: release
+        uses: rymndhng/release-on-push-action@master
         with:
-          github_token: ${{ secrets.GH_TOKEN }}
-          branch: 'master'
-          workflow_id: '3-sync-rebrand.yml'
-
-      - uses: christophebedard/tag-version-commit@v1
-        if: ${{ steps.some-get-commit-action.outputs.commit != '' }}
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-          version_tag_prefix: 'v'
-          commit: ${{ steps.some-get-commit-action.outputs.commit }}
-
-      # - id: release
-      #   uses: rymndhng/release-on-push-action@master
-      #   with:
-      #     bump_version_scheme: minor
-      #     tag_prefix: v
+          bump_version_scheme: minor
+          tag_prefix: v
           
-      # - name: Bump version and push tag
-      #   uses: anothrNick/github-tag-action@1.36.0
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      #     WITH_V: true
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.36.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          WITH_V: true
 
-      # - name: Push new branch
-      #   run: git push origin release/lukso-automation
+      - name: Push new branch
+        run: git push origin release/lukso-automation
 
-      # - name: Create pull request into master
-      #   uses: thomaseizinger/create-pull-request@1.0.0
-      #   with:
-      #     GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      #     head: release/lukso-automation
-      #     base: master
-      #     title: "[Automated PR] Find and replace currency"
-      #     body: |
-      #       This PR was created in response of workflow running on weekly basis or manual trigger.
-      #       This is a forked repo of https://github.com/gobitfly/eth2-beaconchain-explorer which is activly maintained.
-      #       The workflow checks on a weekly basis for new updates and merges it into our repo, afterwards this Automated PR is created to rebrand the application.
+      - name: Create pull request into master
+        uses: thomaseizinger/create-pull-request@1.0.0
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          head: release/lukso-automation
+          base: master
+          title: "[Automated PR] Find and replace currency"
+          body: |
+            This PR was created in response of workflow running on weekly basis or manual trigger.
+            This is a forked repo of https://github.com/gobitfly/eth2-beaconchain-explorer which is activly maintained.
+            The workflow checks on a weekly basis for new updates and merges it into our repo, afterwards this Automated PR is created to rebrand the application.
