@@ -1,7 +1,8 @@
 name: Build Lukso Explorer Consensus
 
 on:
-  pull_request:
+  workflow_dispatch:
+  push:
     tags:
       - '*'
 
