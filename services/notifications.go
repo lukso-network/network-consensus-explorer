@@ -338,7 +338,7 @@ func collectUserDbNotifications() map[uint64]map[types.EventName][]types.Notific
 		metrics.Errors.WithLabelValues("notifications_collect_monitoring_machine_memory_usage").Inc()
 	}
 
-	// New ETH clients
+	// New LYXE clients
 	err = collectEthClientNotifications(notificationsByUserID, types.EthClientUpdateEventName)
 	if err != nil {
 		logger.Errorf("error collecting Eth client notifications: %v", err)
@@ -1180,7 +1180,7 @@ func (n *validatorBalanceDecreasedNotification) GetInfo(includeUrl bool) string 
 	balance := float64(n.EndBalance) / 1e9
 	diff := float64(n.StartBalance-n.EndBalance) / 1e9
 
-	generalPart := fmt.Sprintf(`The balance of validator %[1]v decreased for 3 consecutive epochs by %.9[2]f ETH to %.9[3]f ETH from epoch %[4]v to epoch %[5]v.`, n.ValidatorIndex, diff, balance, n.StartEpoch, n.EndEpoch)
+	generalPart := fmt.Sprintf(`The balance of validator %[1]v decreased for 3 consecutive epochs by %.9[2]f LYXE to %.9[3]f LYXE from epoch %[4]v to epoch %[5]v.`, n.ValidatorIndex, diff, balance, n.StartEpoch, n.EndEpoch)
 	if includeUrl {
 		return generalPart + getUrlPart(n.ValidatorIndex)
 	}

@@ -9,10 +9,10 @@
         <!-- <span class="text-muted text-success">{{ round (percent ((div (.DepositedTotal) (.DepositThreshold)))) 2 }}%</span> -->
       {{ end }}
     </h6>
-    <div class="progress w-100 position-relative" data-toggle="tooltip" data-placement="top" title="A total of {{ .DepositedTotal | formatThousands }} ETH ({{ round (percent (div (.DepositedTotal) (.DepositThreshold))) 2 }}%) has been deposited.">
+    <div class="progress w-100 position-relative" data-toggle="tooltip" data-placement="top" title="A total of {{ .DepositedTotal | formatThousands }} LYXE ({{ round (percent (div (.DepositedTotal) (.DepositThreshold))) 2 }}%) has been deposited.">
       <span class="text-dark" style="position:absolute; margin-right:.5rem; right: 0; top: .5rem;">{{ round (percent ((div (.DepositedTotal) (.DepositThreshold)))) 2 }}%</span>
       <div class="progress-bar bg-info" role="progressbar" style="width:{{ div (.DepositedTotal) (.DepositThreshold) | percent }}%" aria-valuenow="{{ .DepositedTotal | formatThousands }}" aria-valuemin="0" aria-valuemax="{{ .DepositThreshold | formatThousands }}"></div>
     </div>
-    <span class="text-muted">{{ .DepositedTotal | formatThousands }} / {{ .DepositThreshold | formatThousands }} ETH has been deposited.</span>
+    <span class="text-muted">{{ .DepositedTotal | formatThousands }} / {{ .DepositThreshold | formatThousands }} LYXE has been deposited.</span>
   </div>
 {{ end }}

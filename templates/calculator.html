@@ -424,7 +424,7 @@
               // reject(err)
             })
 
-          fetch("https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=BTC,USD,EUR,GBP,JPY,RUB,CNY,AUD,CAD,CZK")
+          fetch("https://min-api.cryptocompare.com/data/price?fsym=LYXE&tsyms=BTC,USD,EUR,GBP,JPY,RUB,CNY,AUD,CAD,CZK")
             .then((res) => res.json())
             .then((data) => {
               this.config.rates = data
@@ -673,15 +673,15 @@
 
         document.getElementById("staking-variable-totalStake-percentage").innerText = `${(this.params.networkStakePercent * 100).toFixed(2)} %`
 
-        document.getElementById("stake1d").innerHTML = `${this.result.incomeChartData[1].y.toFixed(4)} ETH (${symbol}${formatNumberSpacing(this.result.incomeChartData[1].income.toFixed(2))})`
-        document.getElementById("stake7d").innerHTML = `${this.result.incomeChartData[7].y.toFixed(4)} ETH (${symbol}${formatNumberSpacing(this.result.incomeChartData[7].income.toFixed(2))})`
-        document.getElementById("stake31d").innerHTML = `${this.result.incomeChartData[31].y.toFixed(4)} ETH (${symbol}${formatNumberSpacing(this.result.incomeChartData[31].income.toFixed(2))})`
-        document.getElementById("stake365d").innerHTML = `${this.result.incomeChartData[365].y.toFixed(4)} ETH (${symbol}${formatNumberSpacing(this.result.incomeChartData[365].income.toFixed(2))})`
+        document.getElementById("stake1d").innerHTML = `${this.result.incomeChartData[1].y.toFixed(4)} LYXE (${symbol}${formatNumberSpacing(this.result.incomeChartData[1].income.toFixed(2))})`
+        document.getElementById("stake7d").innerHTML = `${this.result.incomeChartData[7].y.toFixed(4)} LYXE (${symbol}${formatNumberSpacing(this.result.incomeChartData[7].income.toFixed(2))})`
+        document.getElementById("stake31d").innerHTML = `${this.result.incomeChartData[31].y.toFixed(4)} LYXE (${symbol}${formatNumberSpacing(this.result.incomeChartData[31].income.toFixed(2))})`
+        document.getElementById("stake365d").innerHTML = `${this.result.incomeChartData[365].y.toFixed(4)} LYXE (${symbol}${formatNumberSpacing(this.result.incomeChartData[365].income.toFixed(2))})`
 
-        document.getElementById("stakeChange1d").innerHTML = `${(this.result.incomeChartData[1].y - this.params.stake / 1e9).toFixed(4)} ETH (${symbol}${formatNumberSpacing((this.result.incomeChartData[1].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
-        document.getElementById("stakeChange7d").innerHTML = `${(this.result.incomeChartData[7].y - this.params.stake / 1e9).toFixed(4)} ETH (${symbol}${formatNumberSpacing((this.result.incomeChartData[7].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
-        document.getElementById("stakeChange31d").innerHTML = `${(this.result.incomeChartData[31].y - this.params.stake / 1e9).toFixed(4)} ETH (${symbol}${formatNumberSpacing((this.result.incomeChartData[31].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
-        document.getElementById("stakeChange365d").innerHTML = `${(this.result.incomeChartData[365].y - this.params.stake / 1e9).toFixed(4)} ETH (${symbol}${formatNumberSpacing((this.result.incomeChartData[365].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange1d").innerHTML = `${(this.result.incomeChartData[1].y - this.params.stake / 1e9).toFixed(4)} LYXE (${symbol}${formatNumberSpacing((this.result.incomeChartData[1].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange7d").innerHTML = `${(this.result.incomeChartData[7].y - this.params.stake / 1e9).toFixed(4)} LYXE (${symbol}${formatNumberSpacing((this.result.incomeChartData[7].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange31d").innerHTML = `${(this.result.incomeChartData[31].y - this.params.stake / 1e9).toFixed(4)} LYXE (${symbol}${formatNumberSpacing((this.result.incomeChartData[31].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange365d").innerHTML = `${(this.result.incomeChartData[365].y - this.params.stake / 1e9).toFixed(4)} LYXE (${symbol}${formatNumberSpacing((this.result.incomeChartData[365].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
 
         document.getElementById("return1d").innerHTML = `${symbol}${formatNumberSpacing(this.result.profitDollarChartData[1][1].toFixed(2))}`
         document.getElementById("return7d").innerHTML = `${symbol}${formatNumberSpacing(this.result.profitDollarChartData[7][1].toFixed(2))}`
@@ -711,7 +711,7 @@
           yAxis: [
             {
               title: {
-                text: "Stake in ETH",
+                text: "Stake in LYXE",
               },
               offset: 30,
             },
@@ -727,7 +727,7 @@
           data: this.result.incomeChartData,
           tooltip: {
             pointFormatter: function () {
-              return `<span style="color:${this.color}">●</span> ${this.series.name} <b>${this.y.toFixed(3)} ETH </b>(${symbol}${formatNumberSpacing(this.options.income.toFixed(2))})<br>`
+              return `<span style="color:${this.color}">●</span> ${this.series.name} <b>${this.y.toFixed(3)} LYXE </b>(${symbol}${formatNumberSpacing(this.options.income.toFixed(2))})<br>`
             },
           },
         })
@@ -883,7 +883,7 @@
       <div class="row my-3">
         <div class="col-xl-4 col-md-5 col-sm-12 py-3 variables">
           <div class="stake">
-            <h5 class="mb-0">Your Ethereum Stake <span id="yourStake-currency">ETH</span> <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="This value represents the amount of ETH you want to use for stacking. If you are not staking on a pool it must be a multiple of 32, since validators can only join the network with a minimum of 32 ETH."></i></h5>
+            <h5 class="mb-0">Your Ethereum Stake <span id="yourStake-currency">LYXE</span> <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="This value represents the amount of LYXE you want to use for stacking. If you are not staking on a pool it must be a multiple of 32, since validators can only join the network with a minimum of 32 LYXE."></i></h5>
             <div class="justify-content-between d-flex p-3 pb-0 align-content-center">
               <input id="staking-variable-yourStake" class="staking-variable form-control col-6" type="text" value="32" />
               <h5 class="mb-0 mt-1" id="validator-count col-6"><span id="validator-count">0</span> <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="The total number of validators that can be added to the network with your stake. A minimum of 32 ethereum is needed for a validator to participate in the network. Ignore this value when you are staking over a pool."></i></h5>
@@ -921,7 +921,7 @@
                     </div>
                   </div>
                   <div class="setting">
-                    <h6>ETH price in <span class="currency-key">USD</span></h6>
+                    <h6>LYXE price in <span class="currency-key">USD</span></h6>
                     <input id="staking-variable-price" class="staking-variable form-control" type="text" value="209.46" />
                     <span id="staking-variable-price-validation" class="input-validation">Ethereum price must be greater than 0</span>
                   </div>
@@ -969,7 +969,7 @@
                   <div class="setting">
                     <div class="d-flex justify-content-between">
                       <h6 width="50%">
-                        Total staked ether <span id="totalStake-currency">ETH</span>
+                        Total staked ether <span id="totalStake-currency">LYXE</span>
                         <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="Total staked ether is the sum of effective balances of all active validators attesting in the network."></i>
                       </h6>
                       <span id="staking-variable-totalStake-percentage"></span>
@@ -1018,8 +1018,8 @@
               <tbody>
                 <tr>
                   <th>Duration</th>
-                  <th>ETH Stake</th>
-                  <th>ETH Reward</th>
+                  <th>LYXE Stake</th>
+                  <th>LYXE Reward</th>
                   <th>Return</th>
                   <th>Return in %</th>
                 </tr>
