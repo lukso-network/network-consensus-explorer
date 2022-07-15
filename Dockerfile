@@ -2,6 +2,7 @@
 FROM golang:1.17-alpine AS build-env
 RUN apk --no-cache add build-base git musl-dev linux-headers npm
 ADD . /src
+ADD .git /src
 WORKDIR /src
 RUN make -B all
 
