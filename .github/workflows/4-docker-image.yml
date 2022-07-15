@@ -52,3 +52,4 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:${{ github.ref_name }}
             ${{ env.IMAGE_NAME }}:latest
+          github-token: ${{ secrets.GH_TOKEN }}
