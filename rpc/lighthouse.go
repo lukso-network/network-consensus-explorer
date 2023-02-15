@@ -142,7 +142,7 @@ func (lc *LighthouseClient) GetChainHead() (*types.ChainHead, error) {
 	logger.Infof("parsedHead.Data.Header.Message.StateRoot is: %v", id)
 	url := fmt.Sprintf("%s/eth/v1/beacon/states/%s/finality_checkpoints", lc.endpoint, id)
 	logger.Infof("Request URL is: %s", url)
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 8)
 	finalityResp, err := lc.get(url)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving finality checkpoints of head: %v", err)
@@ -608,7 +608,8 @@ func (lc *LighthouseClient) GetBlockByBlockroot(blockroot []byte) (*types.Block,
 
 	slot := uint64(parsedHeaders.Data.Header.Message.Slot)
 
-	resp, err := lc.get(fmt.Sprintf("%s/eth/v1/beacon/blocks/%s", lc.endpoint, parsedHeaders.Data.Root))
+	logger.Infof("[GetBlockByBlockroot] Request URL is: %s/eth/v2/beacon/blocks/%s", lc.endpoint, parsedHeaders.Data.Root)
+	resp, err := lc.get(fmt.Sprintf("%s/eth/v2/beacon/blocks/%s", lc.endpoint, parsedHeaders.Data.Root))
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving block data at slot %v: %v", slot, err)
 	}
@@ -663,7 +664,8 @@ func (lc *LighthouseClient) GetBlocksBySlot(slot uint64) ([]*types.Block, error)
 		}
 	}
 
-	resp, err := lc.get(fmt.Sprintf("%s/eth/v1/beacon/blocks/%s", lc.endpoint, parsedHeaders.Data.Root))
+	logger.Infof("[GetBlocksBySlot] Request URL is: %s/eth/v2/beacon/blocks/%s", lc.endpoint, parsedHeaders.Data.Root)
+	resp, err := lc.get(fmt.Sprintf("%s/eth/v2/beacon/blocks/%s", lc.endpoint, parsedHeaders.Data.Root))
 	if err != nil && slot == 0 {
 		return nil, fmt.Errorf("error retrieving block data at slot %v: %v", slot, err)
 	}
