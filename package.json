@@ -13,7 +13,8 @@
     "eslint-html": "eslint templates/**.html",
     "check-format": "npm run check-html && npm run check-js",
     "check-html": "prettier -c templates/",
-    "check-js": "prettier -c static/js"
+    "check-js": "prettier -c static/js",
+    "format-html": "prettier --write templates/"
   },
   "repository": {
     "type": "git",

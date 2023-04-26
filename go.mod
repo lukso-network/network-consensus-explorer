@@ -21,7 +21,6 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/protobuf v1.5.2
 	github.com/gomodule/redigo v1.8.0
-	github.com/google/go-querystring v1.1.0
 	github.com/gorilla/context v1.1.1
 	github.com/gorilla/csrf v1.7.0
 	github.com/gorilla/mux v1.8.0
@@ -54,7 +53,6 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/stripe/stripe-go/v72 v72.50.0
 	github.com/swaggo/http-swagger v1.3.0
-	github.com/swaggo/swag v1.8.3
 	github.com/urfave/negroni v1.0.0
 	github.com/wealdtech/go-eth2-types/v2 v2.8.1
 	github.com/wealdtech/go-eth2-util v1.8.1
@@ -99,6 +97,7 @@ require (
 	github.com/prysmaticlabs/gohashtree v0.0.2-alpha // indirect
 	github.com/rs/cors v1.8.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/swaggo/swag v1.8.3 // indirect
 	github.com/urfave/cli v1.22.12 // indirect
 	github.com/wealdtech/go-bytesutil v1.2.1 // indirect
 	github.com/wealdtech/go-merkletree v1.0.1-0.20190605192610-2bb163c2ea2a // indirect

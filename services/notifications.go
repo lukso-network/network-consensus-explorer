@@ -1310,7 +1310,7 @@ func (n *validatorProposalNotification) GetInfo(includeUrl bool) string {
 	case 0:
 		generalPart = fmt.Sprintf(`New scheduled block proposal for Validator %v.`, n.ValidatorIndex)
 	case 1:
-		generalPart = fmt.Sprintf(`Validator %v proposed a new block with %v ETH execution reward.`, n.ValidatorIndex, n.Reward)
+		generalPart = fmt.Sprintf(`Validator %v proposed a new block with %v LYX execution reward.`, n.ValidatorIndex, n.Reward)
 	case 2:
 		generalPart = fmt.Sprintf(`Validator %v missed a block proposal.`, n.ValidatorIndex)
 	}
@@ -1343,7 +1343,7 @@ func (n *validatorProposalNotification) GetInfoMarkdown() string {
 	case 0:
 		generalPart = fmt.Sprintf(`New scheduled block proposal for Validator [%[1]v](https://%[2]v/%[1]v).`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator")
 	case 1:
-		generalPart = fmt.Sprintf(`Validator [%[1]v](https://%[2]v/%[1]v) proposed a new block with %[3]v ETH execution reward.`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator", n.Reward)
+		generalPart = fmt.Sprintf(`Validator [%[1]v](https://%[2]v/%[1]v) proposed a new block with %[3]v LYX execution reward.`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator", n.Reward)
 	case 2:
 		generalPart = fmt.Sprintf(`Validator [%[1]v](https://%[2]v/%[1]v) missed a block proposal.`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator")
 	}

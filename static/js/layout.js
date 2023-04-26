@@ -613,7 +613,7 @@ function getIncomeChartValueString(value, currency, ethPrice) {
     return `${value.toFixed(5)} ETH`
   }
 
-  return `${(value / ethPrice).toFixed(5)} ETH (${value.toFixed(2)} ${currency})`
+  return `${(value / ethPrice).toFixed(5)} LYX (${value.toFixed(2)} ${currency})`
 }
 
 $("[data-tooltip-date=true]").each(function (item) {
