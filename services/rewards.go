@@ -82,7 +82,7 @@ func GetValidatorHist(validatorArr []uint64, currency string, start uint64, end 
 		data[i] = []string{
 			key,
 			addCommas(float64(item.EndBalance.Int64)/1e9, "%.5f"),                           // end of day balance
-			addCommas(iETH, "%.5f"),                                                         // income of day ETH
+			addCommas(iETH, "%.5f"),                                                         // income of day LYXt
 			fmt.Sprintf("%s %s", strings.ToUpper(currency), addCommas(prices[key], "%.2f")), //price will default to 0 if key does not exist
 			fmt.Sprintf("%s %s", strings.ToUpper(currency), addCommas(iCur, "%.2f")),        // income of day Currency
 		}
@@ -163,7 +163,7 @@ func GeneratePdfReport(hist rewardHistory, currency string) []byte {
 	// pdf.Ln(-1)
 	pdf.CellFormat(0, maxHt, fmt.Sprintf("Income For Timeframe %s | %s", hist.TotalETH, hist.TotalCurrency), "", 0, "CM", true, 0, "")
 
-	header := [colCount]string{"Date", "Balance", "Income", "ETH Value", fmt.Sprintf("Income (%v)", currency)}
+	header := [colCount]string{"Date", "Balance", "Income", "LYXt Value", fmt.Sprintf("Income (%v)", currency)}
 
 	// pdf.SetMargins(marginH, marginH, marginH)
 	pdf.Ln(10)

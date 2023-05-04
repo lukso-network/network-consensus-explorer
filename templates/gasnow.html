@@ -507,7 +507,7 @@
 
 				number = number / 1e18 * price * gasUsed
 				if (typeof Intl !== 'undefined') {
-					return new Intl.NumberFormat('en-US', { style: 'currency', currencyDisplay: 'narrowSymbol', currency: curr && curr !== "ETH" ? curr : "USD" }).format(number)
+					return new Intl.NumberFormat('en-US', { style: 'currency', currencyDisplay: 'narrowSymbol', currency: curr && curr !== "ETH" && curr !== "LYXt" ? curr : "USD" }).format(number)
 				}
 				return number.toFixed(2)
 			},

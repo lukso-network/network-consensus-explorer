@@ -610,7 +610,7 @@ function addCommas(number) {
 
 function getIncomeChartValueString(value, currency, ethPrice) {
   if (this.currency === "ETH") {
-    return `${value.toFixed(5)} ETH`
+    return `${value.toFixed(5)} LYXt`
   }
 
   return `${(value / ethPrice).toFixed(5)} LYX (${value.toFixed(2)} ${currency})`

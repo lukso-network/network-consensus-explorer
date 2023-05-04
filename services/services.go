@@ -442,7 +442,7 @@ func getPoolsPageData() (*types.PoolsResp, error) {
 
 	ethstoreData := &types.PoolInfo{}
 	err = db.ReaderDb.Get(ethstoreData, `
-	select 'ETH.STORE' as name, -1 as count, apr * 100 as avg_performance_1d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 7) * 100 as avg_performance_7d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 31) * 100 as avg_performance_31d from eth_store_stats e where day = (select max(day) from eth_store_stats) LIMIT 1;
+	select 'LYXt.STORE' as name, -1 as count, apr * 100 as avg_performance_1d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 7) * 100 as avg_performance_7d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 31) * 100 as avg_performance_31d from eth_store_stats e where day = (select max(day) from eth_store_stats) LIMIT 1;
 	`)
 	if err != nil {
 		return nil, err
@@ -519,7 +519,7 @@ func ethStoreStatisticsDataUpdater(wg *sync.WaitGroup) {
 	for {
 		data, err := getEthStoreStatisticsData()
 		if err != nil {
-			logger.Errorf("error retrieving ETH.STORE statistics data: %v", err)
+			logger.Errorf("error retrieving LYXt.STORE statistics data: %v", err)
 			time.Sleep(time.Second * 10)
 			continue
 		}
@@ -527,12 +527,12 @@ func ethStoreStatisticsDataUpdater(wg *sync.WaitGroup) {
 		cacheKey := fmt.Sprintf("%d:frontend:ethStoreStatistics", utils.Config.Chain.Config.DepositChainID)
 		err = cache.TieredCache.Set(cacheKey, data, time.Hour*24)
 		if err != nil {
-			logger.Errorf("error caching ETH.STORE statistics data: %v", err)
+			logger.Errorf("error caching LYXt.STORE statistics data: %v", err)
 		}
 		if firstRun {
 			firstRun = false
 			wg.Done()
-			logger.Info("initialized ETH.STORE statistics data updater")
+			logger.Info("initialized LYXt.STORE statistics data updater")
 		}
 		ReportStatus("ethStoreStatistics", "Running", nil)
 		time.Sleep(time.Second * 90)
@@ -621,7 +621,7 @@ func getEthStoreStatisticsData() (*types.EthStoreStatistics, error) {
 }
 
 func getIndexPageData() (*types.IndexPageData, error) {
-	currency := "ETH"
+	currency := "LYXt"
 
 	data := &types.IndexPageData{}
 	data.Mainnet = utils.Config.Chain.Config.ConfigName == "mainnet"
@@ -832,7 +832,7 @@ func getIndexPageData() (*types.IndexPageData, error) {
 				Finalized:                        false,
 				FinalizedFormatted:               utils.FormatYesNo(false),
 				EligibleEther:                    0,
-				EligibleEtherFormatted:           utils.FormatEligibleBalance(0, "ETH"),
+				EligibleEtherFormatted:           utils.FormatEligibleBalance(0, "LYXt"),
 				GlobalParticipationRate:          0,
 				GlobalParticipationRateFormatted: utils.FormatGlobalParticipationRate(0, 1, ""),
 				VotedEther:                       0,
@@ -882,7 +882,7 @@ func getIndexPageData() (*types.IndexPageData, error) {
 	var epochHistory []*types.IndexPageEpochHistory
 	err = db.WriterDb.Select(&epochHistory, "SELECT epoch, eligibleether, validatorscount, finalized, averagevalidatorbalance FROM epochs WHERE epoch < $1 and epoch > $2 ORDER BY epoch", epoch, epochLowerBound)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving staked ether history: %v", err)
+		return nil, fmt.Errorf("error retrieving staked LYXt history: %v", err)
 	}
 
 	if len(epochHistory) > 0 {
@@ -1017,7 +1017,7 @@ func LatestEthStoreStatistics() *types.EthStoreStatistics {
 	if wanted, err := cache.TieredCache.GetWithLocalTimeout(cacheKey, time.Second*60, wanted); err == nil {
 		return wanted.(*types.EthStoreStatistics)
 	} else {
-		logger.Errorf("error retrieving ETH.STORE statistics data from cache: %v", err)
+		logger.Errorf("error retrieving LYXt.STORE statistics data from cache: %v", err)
 	}
 	return &types.EthStoreStatistics{}
 }
@@ -1477,7 +1477,7 @@ func getBurnPageData() (*types.BurnPageData, error) {
 	latestEpoch := LatestEpoch()
 	latestBlock := LatestEth1BlockNumber()
 
-	// Retrieve the total amount of burned Ether
+	// Retrieve the total amount of burned LYXt
 	err := db.ReaderDb.Get(&data.TotalBurned, "select sum(value) from chart_series where indicator = 'BURNED_FEES';")
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving total burned amount from chart_series table: %v", err)
