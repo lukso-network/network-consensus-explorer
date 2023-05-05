@@ -35,7 +35,7 @@ func ValidatorRewards(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
-	data := InitPageData(w, r, "services", "/rewards", "Ethereum Validator Rewards", templateFiles)
+	data := InitPageData(w, r, "services", "/rewards", "LUKSO Validator Rewards", templateFiles)
 
 	var supportedCurrencies []string
 	err = db.ReaderDb.Select(&supportedCurrencies,

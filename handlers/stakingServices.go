@@ -18,7 +18,7 @@ func StakingServices(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
-	data := InitPageData(w, r, "services", "/stakingServices", "Ethereum Staking Services Overview", templateFiles)
+	data := InitPageData(w, r, "services", "/stakingServices", "LUKSO Staking Services Overview", templateFiles)
 
 	pageData := &types.StakeWithUsPageData{}
 	pageData.RecaptchaKey = utils.Config.Frontend.RecaptchaSiteKey
