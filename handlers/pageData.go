@@ -34,7 +34,7 @@ func InitPageData(w http.ResponseWriter, r *http.Request, active, path, title st
 	data := &types.PageData{
 		Meta: &types.Meta{
 			Title:       fullTitle,
-			Description: "beaconcha.in makes Ethereum accessible to non-technical end users",
+			Description: "beaconcha.in makes LUKSO accessible to non-technical end users",
 			Path:        path,
 			GATag:       utils.Config.Frontend.GATag,
 			NoTrack:     false,

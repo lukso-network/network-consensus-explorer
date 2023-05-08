@@ -1817,7 +1817,7 @@ func updateQueueDeposits() error {
 		return err
 	}
 
-	// efficiently collect the tnx that pushed each validator over 32 ETH.
+	// efficiently collect the tnx that pushed each validator over 32 LYXt.
 	_, err = WriterDb.Exec(`
 		UPDATE validator_queue_deposits 
 		SET 
@@ -1844,7 +1844,7 @@ func updateQueueDeposits() error {
 			FROM CumSum
 			/* join so we can retrieve the validator index again */
 			left join validators on validators.pubkey = CumSum.publickey
-			/* we want the deposit that pushed the cum sum over 32 ETH */
+			/* we want the deposit that pushed the cum sum over 32 LYXt */
 			WHERE cumTotal>=32000000000
 			ORDER BY publickey, cumTotal asc 
 		) AS data

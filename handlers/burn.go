@@ -23,7 +23,7 @@ func Burn(w http.ResponseWriter, r *http.Request) {
 
 	currency := GetCurrency(r)
 
-	if currency == "ETH" {
+	if currency == "ETH" || currency == "LYXt" {
 		currency = "USD"
 	}
 
@@ -44,7 +44,7 @@ func BurnPageData(w http.ResponseWriter, r *http.Request) {
 
 	currency := GetCurrency(r)
 
-	if currency == "ETH" {
+	if currency == "ETH" || currency == "LYXt" {
 		currency = "USD"
 	}
 

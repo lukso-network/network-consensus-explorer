@@ -18,7 +18,7 @@ func EthClientsServices(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
-	data := InitPageData(w, r, "services", "/ethClientsServices", "Ethereum Clients Services Overview", templateFiles)
+	data := InitPageData(w, r, "services", "/ethClientsServices", "LUKSO Clients Services Overview", templateFiles)
 
 	pageData := ethclients.GetEthClientData()
 	pageData.CsrfField = csrf.TemplateField(r)
