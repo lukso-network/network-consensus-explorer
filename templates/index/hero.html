@@ -1,41 +1,4 @@
 {{ define "hero" }}
-  <div class="hero-container">
-    <div class="hero-image">
-      <div id="hero-feed" class="d-none shadow-sm">
-        <ul class="d-flex flex-column align-items-center"></ul>
-        <span class="donate-btn"><img src="/img/gitcoin_logo.svg" style="width: auto; height: 30px;" /></span>
-      </div>
-      {{ if .Countdown.Enabled }}
-        <div class="countdown fade-in-top d-none d-lg-block">
-          <h1 class="countdown-headline" style="margin-bottom: 15px; font-size: 42px; font-weight: 900; letter-spacing: 2px; color: #343a40;">{{ .Countdown.Title }}</h1>
-          <div class="d-flex justify-content-between">
-            <div>
-              <div class="d-flex align-items-center justify-content-between mr-3 mb-1">
-                <h2 class="countdown-epoch" style="font-size: 28px; font-weight: 700; letter-spacing: 3px; color: #343a40; text-align: left;"></h2>
-                <h2 class="countdown-slot" style="font-size: 28px; font-weight: 700; letter-spacing: 3px; color: #343a40; text-align: right;"></h2>
-              </div>
-              <h2 class="countdown-time" style="font-size: 28px; font-weight: 700; letter-spacing: 3px; color: #343a40;"></h2>
-              <span style="color: #343a40;">{{ .Countdown.Info }}</span>
-            </div>
-            <i class="fas fa-hourglass-half fa-7x mt-3 rotated-icon" style="color: #565876;"></i>
-          </div>
-        </div>
-      {{ end }}
-    </div>
-    <div class="hero-text">
-      <div class="hero-text-background"></div>
-      <h5 class="text-center">{{ .Subtitle }}</h5>
-    </div>
-    {{ if .Countdown.Enabled }}
-      <div class="d-flex d-lg-none align-items-center justify-content-center w-100 mt-2">
-        <div class="d-flex flex-column" style="position: relative; top: 0;">
-          <h1 class="countdown-headline" style="font-size: 24px; font-weight: 700; letter-spacing: 2px; color: #343a40;">{{ .Countdown.Title }}</h1>
-          <h2 class="countdown-time" style="font-size: 18px; font-weight: 700; letter-spacing: 3px; color: #343a40;"></h2>
-        </div>
-      </div>
-    {{ end }}
-  </div>
-
   <script src="/js/jquery.min.js"></script>
   <script src="/js/luxon.min.js"></script>
   <script src="/js/herofeed.js"></script>
