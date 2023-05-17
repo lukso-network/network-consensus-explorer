@@ -1158,7 +1158,7 @@ function createBalanceChart(income, executionIncomeHistory) {
         var orig = tooltip.defaultFormatter.call(this, tooltip)
         var epoch = timeToEpoch(this.x)
         orig[0] = `${orig[0]}<span style="font-size:10px">Epoch ${epoch}</span>`
-        if (currency !== "ETH" && currency !== "LYXt") {
+        if (currency !== "ETH" && currency !== "LYX") {
           orig[1] = `<span style="color:${this.points[0].color}">●</span> Daily Income: <b>${this.y.toFixed(2)}</b><br/>`
         }
         return orig
@@ -1177,7 +1177,7 @@ function createBalanceChart(income, executionIncomeHistory) {
         opposite: false,
         labels: {
           formatter: function () {
-            if (currency !== "ETH" && currency !== "LYXt") {
+            if (currency !== "ETH" && currency !== "LYX") {
               return this.value.toFixed(2)
             }
             return this.value.toFixed(5)

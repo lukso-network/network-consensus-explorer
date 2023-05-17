@@ -1024,7 +1024,7 @@ func FormatEthstoreComparison(pool string, val float64) template.HTML {
 		ou = "outperforms"
 	}
 
-	return template.HTML(fmt.Sprintf(`<sub title="%s %s the LYXt.STORE indicator by %s%.2f%%" data-toggle="tooltip" class="%s">(%s%.2f%%)</sub>`, pool, ou, prefix, val, textClass, prefix, val))
+	return template.HTML(fmt.Sprintf(`<sub title="%s %s the LYX.STORE indicator by %s%.2f%%" data-toggle="tooltip" class="%s">(%s%.2f%%)</sub>`, pool, ou, prefix, val, textClass, prefix, val))
 }
 
 func FormatPoolPerformance(val float64) template.HTML {

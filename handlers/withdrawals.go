@@ -167,8 +167,8 @@ func WithdrawalsTableData(draw uint64, search string, length, start uint64, orde
 	if currency == "ETH" {
 		formatCurrency = "Ether"
 	}
-	if currency == "LYXt" {
-		formatCurrency = "LYXt"
+	if currency == "LYX" {
+		formatCurrency = "LYX"
 	}
 
 	tableData := make([][]interface{}, len(withdrawals))

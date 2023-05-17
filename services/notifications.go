@@ -1310,7 +1310,7 @@ func (n *validatorProposalNotification) GetInfo(includeUrl bool) string {
 	case 0:
 		generalPart = fmt.Sprintf(`New scheduled block proposal for Validator %v.`, n.ValidatorIndex)
 	case 1:
-		generalPart = fmt.Sprintf(`Validator %v proposed a new block with %v LYXt execution reward.`, n.ValidatorIndex, n.Reward)
+		generalPart = fmt.Sprintf(`Validator %v proposed a new block with %v LYX execution reward.`, n.ValidatorIndex, n.Reward)
 	case 2:
 		generalPart = fmt.Sprintf(`Validator %v missed a block proposal.`, n.ValidatorIndex)
 	}
@@ -1343,7 +1343,7 @@ func (n *validatorProposalNotification) GetInfoMarkdown() string {
 	case 0:
 		generalPart = fmt.Sprintf(`New scheduled block proposal for Validator [%[1]v](https://%[2]v/%[1]v).`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator")
 	case 1:
-		generalPart = fmt.Sprintf(`Validator [%[1]v](https://%[2]v/%[1]v) proposed a new block with %[3]v LYXt execution reward.`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator", n.Reward)
+		generalPart = fmt.Sprintf(`Validator [%[1]v](https://%[2]v/%[1]v) proposed a new block with %[3]v LYX execution reward.`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator", n.Reward)
 	case 2:
 		generalPart = fmt.Sprintf(`Validator [%[1]v](https://%[2]v/%[1]v) missed a block proposal.`, n.ValidatorIndex, utils.Config.Frontend.SiteDomain+"/validator")
 	}
@@ -1960,7 +1960,7 @@ func (n *validatorWithdrawalNotification) GetEventName() types.EventName {
 }
 
 func (n *validatorWithdrawalNotification) GetInfo(includeUrl bool) string {
-	generalPart := fmt.Sprintf(`A withdrawal of %v has been processed for validator %v.`, utils.FormatCurrentBalance(n.Amount, "LYXt"), n.ValidatorIndex)
+	generalPart := fmt.Sprintf(`A withdrawal of %v has been processed for validator %v.`, utils.FormatCurrentBalance(n.Amount, "LYX"), n.ValidatorIndex)
 	if includeUrl {
 		return generalPart + getUrlPart(n.ValidatorIndex)
 	}
@@ -1976,7 +1976,7 @@ func (n *validatorWithdrawalNotification) GetEventFilter() string {
 }
 
 func (n *validatorWithdrawalNotification) GetInfoMarkdown() string {
-	generalPart := fmt.Sprintf(`A withdrawal of %[2]v has been processed for validator [%[1]v](https://%[6]v/validator/%[1]v) during slot [%[3]v](https://%[6]v/slot/%[3]v). The funds have been sent to: [%[4]v](https://%[6]v/address/%[4]v).`, n.ValidatorIndex, utils.FormatCurrentBalance(n.Amount, "LYXt"), n.Slot, utils.FormatHash(n.Address), n.Address, utils.Config.Frontend.SiteDomain)
+	generalPart := fmt.Sprintf(`A withdrawal of %[2]v has been processed for validator [%[1]v](https://%[6]v/validator/%[1]v) during slot [%[3]v](https://%[6]v/slot/%[3]v). The funds have been sent to: [%[4]v](https://%[6]v/address/%[4]v).`, n.ValidatorIndex, utils.FormatCurrentBalance(n.Amount, "LYX"), n.Slot, utils.FormatHash(n.Address), n.Address, utils.Config.Frontend.SiteDomain)
 	return generalPart
 }
 

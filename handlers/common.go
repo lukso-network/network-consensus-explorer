@@ -385,7 +385,7 @@ func GetCurrency(r *http.Request) string {
 		return cookie.Value
 	}
 
-	return "LYXt"
+	return "LYX"
 }
 
 func GetCurrencySymbol(r *http.Request) string {
@@ -421,7 +421,7 @@ func GetCurrentPrice(r *http.Request) uint64 {
 		return price.GetEthRoundPrice(price.GetEthPrice("USD"))
 	}
 
-	if cookie.Value == "ETH" || cookie.Value == "LYXt" {
+	if cookie.Value == "ETH" || cookie.Value == "LYX" {
 		return price.GetEthRoundPrice(price.GetEthPrice("USD"))
 	}
 	return price.GetEthRoundPrice(price.GetEthPrice(cookie.Value))

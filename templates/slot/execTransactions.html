@@ -25,8 +25,8 @@
             <td class="border-0" {{ if gt (len .Method ) 0 }}data-toggle="tooltip" title="{{ .Method }}"{{ end }}><span class="badge badge-light text-truncate mw-100">{{ if gt (len .Method ) 0 }}{{ .Method }}{{ else }}Transfer{{ end }}</span></td>
             <td class="border-0">{{ .FromFormatted }}</td>
             <td class="border-0">{{ .ToFormatted }}</td>
-            <td class="border-0">{{ formatAmountFormatted .Value "LYXt" 5 0 true true false }}</td>
-            <td class="border-0">{{ formatAmountFormatted .Fee "LYXt" 5  0 true true false }}</td>
+            <td class="border-0">{{ formatAmountFormatted .Value "LYX" 5 0 true true false }}</td>
+            <td class="border-0">{{ formatAmountFormatted .Fee "LYX" 5  0 true true false }}</td>
             <td class="border-0">{{ formatAmountFormatted .GasPrice "GWei" 5 0 true true false }}</td>
           </tr>
         {{ end }}

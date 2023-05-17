@@ -259,7 +259,7 @@ func GetEth1Transaction(hash common.Hash) (*types.Eth1TxData, error) {
 			}
 
 			if amount, found := v.DecodedData["amount"]; found {
-				// amount is a little endian hex denominated in GEwei so we have to decode and reverse it and then convert to LYXt
+				// amount is a little endian hex denominated in GEwei so we have to decode and reverse it and then convert to LYX
 				ba, err := hex.DecodeString(amount.Raw[2:])
 				if err != nil {
 					continue
