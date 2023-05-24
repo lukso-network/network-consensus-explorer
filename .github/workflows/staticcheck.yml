@@ -5,10 +5,14 @@ on:
     branches:
       - master
       - staging
+      - mainnet
+      - testnet
   pull_request:
     branches:
       - staging
       - master
+      - mainnet
+      - testnet
 
 jobs:
   ci:
