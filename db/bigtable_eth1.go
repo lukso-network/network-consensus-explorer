@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -1685,8 +1686,6 @@ func (bigtable *Bigtable) GetEth1TxForAddress(prefix string, limit int64) ([]*ty
 
 	// add \x00 to the row range such that we skip the previous value
 	rowRange := gcp_bigtable.NewRange(prefix+"\x00", prefixSuccessor(prefix, 5))
-	// rowRange := gcp_bigtable.PrefixRange(prefix)
-	// logger.Infof("querying for prefix: %v", prefix)
 	data := make([]*types.Eth1TransactionIndexed, 0, limit)
 	keys := make([]string, 0, limit)
 	indexes := make([]string, 0, limit)
@@ -1721,13 +1720,11 @@ func (bigtable *Bigtable) GetEth1TxForAddress(prefix string, limit int64) ([]*ty
 		return nil, "", err
 	}
 
-	// logger.Infof("adding keys: %+v", keys)
-	// logger.Infof("adding indexes: %+v", indexes)
 	for _, key := range keys {
-		data = append(data, keysMap[key])
+		if d := keysMap[key]; d != nil {
+			data = append(data, d)
+		}
 	}
-
-	// logger.Infof("returning data len: %v lastkey: %v", len(data), lastKey)
 
 	return data, indexes[len(indexes)-1], nil
 }
@@ -1807,13 +1804,9 @@ func (bigtable *Bigtable) GetAddressTransactionsTableData(address []byte, search
 
 	// retrieve metadata
 	names := make(map[string]string)
-	for k, t := range transactions {
-		if t != nil {
-			names[string(t.From)] = ""
-			names[string(t.To)] = ""
-		} else {
-			logrus.WithField("index", k).WithField("len(transactions)", len(transactions)).WithField("pageToken", pageToken).Error("error, found nil transactions")
-		}
+	for _, t := range transactions {
+		names[string(t.From)] = ""
+		names[string(t.To)] = ""
 	}
 	names, _, err = BigtableClient.GetAddressesNamesArMetadata(&names, nil)
 	if err != nil {
@@ -1822,25 +1815,19 @@ func (bigtable *Bigtable) GetAddressTransactionsTableData(address []byte, search
 
 	tableData := make([][]interface{}, len(transactions))
 	for i, t := range transactions {
-
-		fromName := ""
-		toName := ""
-		if t != nil {
-			fromName = names[string(t.From)]
-			toName = names[string(t.To)]
-		}
+		fromName := names[string(t.From)]
+		toName := names[string(t.To)]
 
 		from := utils.FormatAddress(t.From, nil, fromName, false, false, !bytes.Equal(t.From, address))
 		to := utils.FormatAddress(t.To, nil, toName, false, false, !bytes.Equal(t.To, address))
 
 		method := bigtable.GetMethodLabel(t.MethodId, t.InvokesContract)
-		// logger.Infof("hash: %x amount: %s", t.Hash, new(big.Int).SetBytes(t.Value))
 
 		tableData[i] = []interface{}{
 			utils.FormatTransactionHash(t.Hash),
 			utils.FormatMethod(method),
 			utils.FormatBlockNumber(t.BlockNumber),
-			utils.FormatTimeFromNow(t.Time.AsTime()),
+			utils.FormatTimestamp(t.Time.AsTime().Unix()),
 			from,
 			utils.FormatInOutSelf(address, t.From, t.To),
 			to,
@@ -1849,9 +1836,6 @@ func (bigtable *Bigtable) GetAddressTransactionsTableData(address []byte, search
 	}
 
 	data := &types.DataTableResponse{
-		// Draw: draw,
-		// RecordsTotal:    ,
-		// RecordsFiltered: ,
 		Data:        tableData,
 		PagingToken: lastKey,
 	}
@@ -1865,8 +1849,6 @@ func (bigtable *Bigtable) GetEth1BlocksForAddress(prefix string, limit int64) ([
 
 	// add \x00 to the row range such that we skip the previous value
 	rowRange := gcp_bigtable.NewRange(prefix+"\x00", prefixSuccessor(prefix, 4))
-	// rowRange := gcp_bigtable.PrefixRange(prefix)
-	// logger.Infof("querying for prefix: %v", prefix)
 	data := make([]*types.Eth1BlockIndexed, 0, limit)
 	keys := make([]string, 0, limit)
 	indexes := make([]string, 0, limit)
@@ -1880,8 +1862,6 @@ func (bigtable *Bigtable) GetEth1BlocksForAddress(prefix string, limit int64) ([
 	if err != nil {
 		return nil, "", err
 	}
-
-	// logger.Infof("found eth1blocks: %v results", len(keys))
 
 	if len(keys) == 0 {
 		return data, "", nil
@@ -1903,13 +1883,11 @@ func (bigtable *Bigtable) GetEth1BlocksForAddress(prefix string, limit int64) ([
 		return nil, "", err
 	}
 
-	// logger.Infof("adding keys: %+v", keys)
-	// logger.Infof("adding indexes: %+v", indexes)
 	for _, key := range keys {
-		data = append(data, keysMap[key])
+		if d := keysMap[key]; d != nil {
+			data = append(data, d)
+		}
 	}
-
-	// logger.Infof("returning data len: %v lastkey: %v", len(data), lastKey)
 
 	return data, indexes[len(indexes)-1], nil
 }
@@ -1926,22 +1904,17 @@ func (bigtable *Bigtable) GetAddressBlocksMinedTableData(address string, search 
 
 	tableData := make([][]interface{}, len(blocks))
 	for i, b := range blocks {
-		// logger.Infof("hash: %d amount: %s", b.Number, new(big.Int).SetBytes(b.TxReward).String())
-
 		reward := new(big.Int).Add(utils.Eth1BlockReward(b.Number, b.Difficulty), new(big.Int).SetBytes(b.TxReward))
 
 		tableData[i] = []interface{}{
 			utils.FormatBlockNumber(b.Number),
-			utils.FormatTimeFromNow(b.Time.AsTime()),
+			utils.FormatTimestamp(b.Time.AsTime().Unix()),
 			utils.FormatBlockUsage(b.GasUsed, b.GasLimit),
 			utils.FormatAmount(reward, "LYX", 6),
 		}
 	}
 
 	data := &types.DataTableResponse{
-		// Draw: draw,
-		// RecordsTotal:    ,
-		// RecordsFiltered: ,
 		Data:        tableData,
 		PagingToken: lastKey,
 	}
@@ -1955,8 +1928,6 @@ func (bigtable *Bigtable) GetEth1UnclesForAddress(prefix string, limit int64) ([
 
 	// add \x00 to the row range such that we skip the previous value
 	rowRange := gcp_bigtable.NewRange(prefix+"\x00", prefixSuccessor(prefix, 4))
-	// rowRange := gcp_bigtable.PrefixRange(prefix)
-	// logger.Infof("querying for prefix: %v", prefix)
 	data := make([]*types.Eth1UncleIndexed, 0, limit)
 	keys := make([]string, 0, limit)
 	indexes := make([]string, 0, limit)
@@ -1970,8 +1941,6 @@ func (bigtable *Bigtable) GetEth1UnclesForAddress(prefix string, limit int64) ([
 	if err != nil {
 		return nil, "", err
 	}
-
-	// logger.Infof("found uncles: %v results", len(keys))
 
 	if len(keys) == 0 {
 		return data, "", nil
@@ -1993,13 +1962,11 @@ func (bigtable *Bigtable) GetEth1UnclesForAddress(prefix string, limit int64) ([
 		return nil, "", err
 	}
 
-	// logger.Infof("adding keys: %+v", keys)
-	// logger.Infof("adding indexes: %+v", indexes)
 	for _, key := range keys {
-		data = append(data, keysMap[key])
+		if d := keysMap[key]; d != nil {
+			data = append(data, d)
+		}
 	}
-
-	// logger.Infof("returning data len: %v lastkey: %v", len(data), lastKey)
 
 	return data, indexes[len(indexes)-1], nil
 }
@@ -2016,19 +1983,15 @@ func (bigtable *Bigtable) GetAddressUnclesMinedTableData(address string, search 
 
 	tableData := make([][]interface{}, len(uncles))
 	for i, u := range uncles {
-
 		tableData[i] = []interface{}{
 			utils.FormatBlockNumber(u.Number),
-			utils.FormatTimeFromNow(u.Time.AsTime()),
+			utils.FormatTimestamp(u.Time.AsTime().Unix()),
 			utils.FormatDifficulty(new(big.Int).SetBytes(u.Difficulty)),
 			utils.FormatAmount(new(big.Int).SetBytes(u.Reward), "LYX", 6),
 		}
 	}
 
 	data := &types.DataTableResponse{
-		// Draw: draw,
-		// RecordsTotal:    ,
-		// RecordsFiltered: ,
 		Data:        tableData,
 		PagingToken: lastKey,
 	}
@@ -2121,7 +2084,7 @@ func (bigtable *Bigtable) GetAddressInternalTableData(address []byte, search str
 
 		tableData[i] = []interface{}{
 			utils.FormatTransactionHash(t.ParentHash),
-			utils.FormatTimeFromNow(t.Time.AsTime()),
+			utils.FormatTimestamp(t.Time.AsTime().Unix()),
 			from,
 			utils.FormatInOutSelf(address, t.From, t.To),
 			to,
@@ -2362,7 +2325,9 @@ func (bigtable *Bigtable) GetEth1ERC20ForAddress(prefix string, limit int64) ([]
 	}
 
 	for _, key := range keys {
-		data = append(data, keysMap[key])
+		if d := keysMap[key]; d != nil {
+			data = append(data, d)
+		}
 	}
 
 	return data, indexes[len(indexes)-1], nil
@@ -2391,9 +2356,6 @@ func (bigtable *Bigtable) GetAddressErc20TableData(address []byte, search string
 		return nil, err
 	}
 
-	// fromName := names[string(t.From)]
-	// toName := names[string(t.To)]
-
 	tableData := make([][]interface{}, len(transactions))
 
 	for i, t := range transactions {
@@ -2412,7 +2374,7 @@ func (bigtable *Bigtable) GetAddressErc20TableData(address []byte, search string
 
 		tableData[i] = []interface{}{
 			utils.FormatTransactionHash(t.ParentHash),
-			utils.FormatTimeFromNow(t.Time.AsTime()),
+			utils.FormatTimestamp(t.Time.AsTime().Unix()),
 			from,
 			utils.FormatInOutSelf(address, t.From, t.To),
 			to,
@@ -2445,7 +2407,6 @@ func (bigtable *Bigtable) GetEth1ERC721ForAddress(prefix string, limit int64) ([
 	indexes := make([]string, 0, limit)
 
 	//  1:I:ERC721:81d98c8fda0410ee3e9d7586cb949cd19fa4cf38:TIME:9223372035220135322:0052:00000
-
 	err := bigtable.tableData.ReadRows(ctx, rowRange, func(row gcp_bigtable.Row) bool {
 		keys = append(keys, strings.TrimPrefix(row[DEFAULT_FAMILY][0].Column, "f:"))
 		indexes = append(indexes, row.Key())
@@ -2475,7 +2436,9 @@ func (bigtable *Bigtable) GetEth1ERC721ForAddress(prefix string, limit int64) ([
 	}
 
 	for _, key := range keys {
-		data = append(data, keysMap[key])
+		if d := keysMap[key]; d != nil {
+			data = append(data, d)
+		}
 	}
 	return data, indexes[len(indexes)-1], nil
 }
@@ -2504,7 +2467,7 @@ func (bigtable *Bigtable) GetAddressErc721TableData(address string, search strin
 		}
 		tableData[i] = []interface{}{
 			utils.FormatTransactionHash(t.ParentHash),
-			utils.FormatTimeFromNow(t.Time.AsTime()),
+			utils.FormatTimestamp(t.Time.AsTime().Unix()),
 			from,
 			to,
 			utils.FormatAddressAsLink(t.TokenAddress, "", false, true),
@@ -2561,7 +2524,9 @@ func (bigtable *Bigtable) GetEth1ERC1155ForAddress(prefix string, limit int64) (
 	}
 
 	for _, key := range keys {
-		data = append(data, keysMap[key])
+		if d := keysMap[key]; d != nil {
+			data = append(data, d)
+		}
 	}
 	return data, indexes[len(indexes)-1], nil
 }
@@ -2588,7 +2553,7 @@ func (bigtable *Bigtable) GetAddressErc1155TableData(address string, search stri
 		}
 		tableData[i] = []interface{}{
 			utils.FormatTransactionHash(t.ParentHash),
-			utils.FormatTimeFromNow(t.Time.AsTime()),
+			utils.FormatTimestamp(t.Time.AsTime().Unix()),
 			from,
 			to,
 			utils.FormatAddressAsLink(t.TokenAddress, "", false, true),
@@ -3011,10 +2976,11 @@ func (bigtable *Bigtable) GetContractMetadata(address []byte) (*types.ContractMe
 			if err == utils.ErrRateLimit {
 				logrus.Warnf("Hit rate limit when fetching contract metadata for address %x", address)
 			} else {
-				utils.LogError(err, "Fetching contract metadata", 0, fmt.Sprintf("%x", address))
+				logAdditionalInfo := map[string]interface{}{"address": fmt.Sprintf("%x", address)}
+				utils.LogError(err, "Fetching contract metadata", 0, logAdditionalInfo)
 				err := cache.TieredCache.Set(cacheKey, &types.ContractMetadata{}, time.Hour*24)
 				if err != nil {
-					utils.LogError(err, "Caching contract metadata", 0, fmt.Sprintf("%x", address))
+					utils.LogError(err, "Caching contract metadata", 0, logAdditionalInfo)
 				}
 			}
 			return nil, err
@@ -3024,14 +2990,14 @@ func (bigtable *Bigtable) GetContractMetadata(address []byte) (*types.ContractMe
 		if ret == nil {
 			err = cache.TieredCache.Set(cacheKey, &types.ContractMetadata{}, time.Hour*24)
 			if err != nil {
-				utils.LogError(err, "Caching contract metadata", 0, fmt.Sprintf("%x", address))
+				utils.LogError(err, "Caching contract metadata", 0, map[string]interface{}{"address": fmt.Sprintf("%x", address)})
 			}
 			return nil, nil
 		}
 
 		err = cache.TieredCache.Set(cacheKey, ret, time.Hour*24)
 		if err != nil {
-			utils.LogError(err, "Caching contract metadata", 0, fmt.Sprintf("%x", address))
+			utils.LogError(err, "Caching contract metadata", 0, map[string]interface{}{"address": fmt.Sprintf("%x", address)})
 		}
 
 		err = bigtable.SaveContractMetadata(address, ret)
@@ -3227,8 +3193,6 @@ func (bigtable *Bigtable) GetEth1TxForToken(prefix string, limit int64) ([]*type
 
 	// add \x00 to the row range such that we skip the previous value
 	rowRange := gcp_bigtable.NewRange(prefix+"\x00", prefixSuccessor(prefix, 5))
-	// rowRange := gcp_bigtable.PrefixRange(prefix)
-	// logger.Infof("querying for prefix: %v", prefix)
 	data := make([]*types.Eth1ERC20Indexed, 0, limit)
 	keys := make([]string, 0, limit)
 	indexes := make([]string, 0, limit)
@@ -3263,13 +3227,11 @@ func (bigtable *Bigtable) GetEth1TxForToken(prefix string, limit int64) ([]*type
 		return nil, "", err
 	}
 
-	// logger.Infof("adding keys: %+v", keys)
-	// logger.Infof("adding indexes: %+v", indexes)
 	for _, key := range keys {
-		data = append(data, keysMap[key])
+		if d := keysMap[key]; d != nil {
+			data = append(data, d)
+		}
 	}
-
-	// logger.Infof("returning data len: %v lastkey: %v", len(data), lastKey)
 
 	return data, indexes[len(indexes)-1], nil
 }
@@ -3318,7 +3280,7 @@ func (bigtable *Bigtable) GetTokenTransactionsTableData(token []byte, address []
 
 		tableData[i] = []interface{}{
 			utils.FormatTransactionHash(t.ParentHash),
-			utils.FormatTimeFromNow(t.Time.AsTime()),
+			utils.FormatTimestamp(t.Time.AsTime().Unix()),
 			from,
 			utils.FormatInOutSelf(address, t.From, t.To),
 			to,
@@ -3371,17 +3333,24 @@ func (bigtable *Bigtable) SearchForAddress(addressPrefix []byte, limit int) ([]*
 	return data, nil
 }
 
+func getSignaturePrefix(st types.SignatureType) string {
+	if st == types.EventSignature {
+		return "e"
+	}
+	return "m"
+}
+
 // Get the status of the last signature import run
-func (bigtable *Bigtable) GetMethodSignatureImportStatus() (*types.MethodSignatureImportStatus, error) {
+func (bigtable *Bigtable) GetSignatureImportStatus(st types.SignatureType) (*types.SignatureImportStatus, error) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
 	defer cancel()
-	key := "1:M_SIGNATURE_IMPORT_STATUS"
+	key := fmt.Sprintf("1:%v_SIGNATURE_IMPORT_STATUS", getSignaturePrefix(st))
 	row, err := bigtable.tableData.ReadRow(ctx, key)
 	if err != nil {
 		logrus.Errorf("error reading signature imoprt status row %v: %v", row.Key(), err)
 		return nil, err
 	}
-	s := &types.MethodSignatureImportStatus{}
+	s := &types.SignatureImportStatus{}
 	if row == nil {
 		return s, nil
 	}
@@ -3396,7 +3365,7 @@ func (bigtable *Bigtable) GetMethodSignatureImportStatus() (*types.MethodSignatu
 }
 
 // Save the status of the last signature import run
-func (bigtable *Bigtable) SaveMethodSignatureImportStatus(status types.MethodSignatureImportStatus) error {
+func (bigtable *Bigtable) SaveSignatureImportStatus(status types.SignatureImportStatus, st types.SignatureType) error {
 
 	mutsWrite := &types.BulkMutations{
 		Keys: make([]string, 0, 1),
@@ -3411,7 +3380,7 @@ func (bigtable *Bigtable) SaveMethodSignatureImportStatus(status types.MethodSig
 	mut := gcp_bigtable.NewMutation()
 	mut.Set(DEFAULT_FAMILY, DATA_COLUMN, gcp_bigtable.Timestamp(0), s)
 
-	key := "1:M_SIGNATURE_IMPORT_STATUS"
+	key := fmt.Sprintf("1:%v_SIGNATURE_IMPORT_STATUS", getSignaturePrefix(st))
 
 	mutsWrite.Keys = append(mutsWrite.Keys, key)
 	mutsWrite.Muts = append(mutsWrite.Muts, mut)
@@ -3425,8 +3394,8 @@ func (bigtable *Bigtable) SaveMethodSignatureImportStatus(status types.MethodSig
 	return nil
 }
 
-// Save a list of method signatures
-func (bigtable *Bigtable) SaveMethodSignatures(signatures []types.MethodSignature) error {
+// Save a list of signatures
+func (bigtable *Bigtable) SaveSignatures(signatures []types.Signature, st types.SignatureType) error {
 
 	mutsWrite := &types.BulkMutations{
 		Keys: make([]string, 0, 1),
@@ -3437,7 +3406,7 @@ func (bigtable *Bigtable) SaveMethodSignatures(signatures []types.MethodSignatur
 		mut := gcp_bigtable.NewMutation()
 		mut.Set(DEFAULT_FAMILY, DATA_COLUMN, gcp_bigtable.Timestamp(0), []byte(sig.Text))
 
-		key := fmt.Sprintf("1:M_SIGNATURE:%v", sig.Hex)
+		key := fmt.Sprintf("1:%v_SIGNATURE:%v", getSignaturePrefix(st), sig.Hex)
 
 		mutsWrite.Keys = append(mutsWrite.Keys, key)
 		mutsWrite.Muts = append(mutsWrite.Muts, mut)
@@ -3452,11 +3421,11 @@ func (bigtable *Bigtable) SaveMethodSignatures(signatures []types.MethodSignatur
 	return nil
 }
 
-// get a method signature by it's hex representation
-func (bigtable *Bigtable) GetMethodSignature(hex string) (*string, error) {
+// get a signature by it's hex representation
+func (bigtable *Bigtable) GetSignature(hex string, st types.SignatureType) (*string, error) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
 	defer cancel()
-	key := fmt.Sprintf("1:M_SIGNATURE:%v", hex)
+	key := fmt.Sprintf("1:%v_SIGNATURE:%v", getSignaturePrefix(st), hex)
 	row, err := bigtable.tableData.ReadRow(ctx, key)
 	if err != nil {
 		logrus.Errorf("error reading signature imoprt status row %v: %v", row.Key(), err)
@@ -3476,19 +3445,41 @@ func (bigtable *Bigtable) GetMethodLabel(id []byte, invokesContract bool) string
 	if len(id) > 0 {
 		if invokesContract {
 			method = fmt.Sprintf("0x%x", id)
-			cacheKey := fmt.Sprintf("METHOD:HASH_TO_LABEL:%s", method)
+			cacheKey := fmt.Sprintf("M:H2L:%s", method)
 			if _, err := cache.TieredCache.GetWithLocalTimeout(cacheKey, time.Hour, &method); err != nil {
-				sig, err := bigtable.GetMethodSignature(method)
-				if err == nil && sig != nil {
-					method = *sig
+				sig, err := bigtable.GetSignature(method, types.MethodSignature)
+				if err == nil {
+					if sig != nil {
+						reg := regexp.MustCompile(`\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\)`)
+						method = reg.ReplaceAllString(*sig, "")
+					}
+					cache.TieredCache.Set(cacheKey, method, time.Hour)
 				}
-				cache.TieredCache.Set(cacheKey, method, time.Hour)
 			}
 		} else {
 			method = "Transfer*"
 		}
 	}
 	return method
+}
+
+// get an event label for its byte signature with defaults
+func (bigtable *Bigtable) GetEventLabel(id []byte) string {
+	label := ""
+	if len(id) > 0 {
+		event := fmt.Sprintf("0x%x", id)
+		cacheKey := fmt.Sprintf("E:H2L:%s", event)
+		if _, err := cache.TieredCache.GetWithLocalTimeout(cacheKey, time.Hour, &label); err != nil {
+			sig, err := bigtable.GetSignature(event, types.EventSignature)
+			if err == nil {
+				if sig != nil {
+					label = *sig
+				}
+				cache.TieredCache.Set(cacheKey, label, time.Hour)
+			}
+		}
+	}
+	return label
 }
 
 func prefixSuccessor(prefix string, pos int) string {

@@ -1,61 +1,7 @@
 {{ define "js" }}
-  <script src="https://www.google.com/recaptcha/api.js" async></script>
-  <script>
-    function onSubmit(token) {
-      var form = document.getElementById("contact")
-      if (form.reportValidity()) {
-        form.submit()
-      }
-    }
-  </script>
 {{ end }}
 
 {{ define "css" }}
-  <!-- <style>
-        @media (min-width: 1140px) {
-            .max-lg-300 {
-                max-width: 300px;
-            }
-        }
-                @media (max-width: 960px) {
-                    table {
-                          width: 100%;
-                    }
-                    table, thead, tbody, th, td, tr {
-                        display: block
-                    }
-                    thead tr {
-                        position: absolute;
-                        top: -9999px;
-                        left: -9999px;
-                    }
-                    tr {
-                        border: 1px solid var(--border-color);
-                        margin: 1rem 0;
-                    }
-                    td {
-                        /* Behave  like a "row" */
-                        border: none;
-                        border-bottom: 1px solid var(--border-color-transparent);
-                        position: relative;
-                        padding-left: 40% !important;
-                    }
-                    td:before {
-                        /* Now like a table header */
-                        position: absolute;
-                        /* Top/left values mimic padding */
-                        left: 1rem;
-                        width: 35%;
-                        padding-right: 1rem;
-                        white-space: nowrap;
-                        /* Label the data */
-                        content: attr(data-column);
-
-                        color: var(--body-color);
-                        font-weight: bold;
-                    }
-                }
-    </style> -->
 {{ end }}
 
 {{ define "content" }}
@@ -213,6 +159,7 @@
                 <thead>
                   <tr>
                     <th>Service</th>
+                    <th><a href="https://execution-diversity.info/">No Supermajority client</a></th>
                     <th>Validator key owner</th>
                     <th>Withdrawal key owner</th>
                     <th>Pool token</th>
@@ -225,7 +172,12 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td data-column="Service"><a href="https://ethpool.org/">Ethpool</a> by beaconcha.in</td>
+                    <td data-column="Service">
+                      <a href="https://ethpool.org/">Ethpool</a><span> by beaconcha.in</span>
+                      <br />
+                      <span style="font-size: xx-small; font-style: italic;">Hardware Wallet Support</span>
+                    </td>
+                    <td data-column="No Supermajority client" style="text-align: center;">✅</td>
                     <td data-column="Validator key owner">User & Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -254,12 +206,13 @@
                   </tr> -->
                   <tr style="border-bottom: 3px solid orange;">
                     <td data-column="Service"><a href="https://staking.ethermine.org/">Ethermine Staking</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">✅</td>
                     <td data-column="Validator key owner">User & Service</td>
                     <td data-column="Withdrawal key owner">User & Service</td>
                     <td data-column="Pool token">No</td>
                     <td data-column="3rd Party Software">No</td>
                     <td data-column="Min. Stake">0.1 LYX</td>
-                    <td data-column="Fee">8%</td>
+                    <td data-column="Fee">8% of rewards</td>
                     <td data-column="Open Source">No</td>
                     <td data-column="Social">
                       <a href="https://discord.io/ethermine  " target="_blank"><i class="fab fa-discord ml-1 mr-1"></i></a><a href="https://twitter.com/ethermine_org" target="_blank"><i class="fab fa-twitter ml-1 mr-1"></i></a><i class="fab fa-telegram ml-1 mr-1"></i><i class="fa fa-mail-bulk ml-1 mr-1"></i>
@@ -267,6 +220,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://abyss.finance/hosting">Abyss Finance</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">User & Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -280,6 +234,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.allnodes.com/eth2/staking">Allnodes</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">User & Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -293,12 +248,13 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.ankr.com/staking/stake/">Ankr Staking</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">Service</td>
                     <td data-column="Pool token">Yes</td>
                     <td data-column="3rd Party Software">No</td>
-                    <td data-column="Min. Stake">0.5 ETH</td>
-                    <td data-column="Fee">15% of rewards</td>
+                    <td data-column="Min. Stake">Any amount</td>
+                    <td data-column="Fee">10% of rewards</td>
                     <td data-column="Open Source">Yes</td>
                     <td data-column="Social">
                       <a href="https://discord.gg/2BSdr2g" target="_blank"><i class="fab fa-discord ml-1 mr-1"></i></a><a href="https://twitter.com/ankr" target="_blank"><i class="fab fa-twitter ml-1 mr-1"></i></a><a href="https://t.me/ankrnetwork" target="_blank"><i class="fab fa-telegram ml-1 mr-1"></i></a><i class="fa fa-mail-bulk ml-1 mr-1"></i>
@@ -306,6 +262,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://atomicwallet.io">Atomic Wallet</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">No</td>
@@ -319,6 +276,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.attestant.io/">Attestant</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">✅</td>
                     <td data-column="Validator key owner">User & Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -332,6 +290,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.binance.com/en/staking">Binance Exchange</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">Service</td>
                     <td data-column="Pool token">No</td>
@@ -343,6 +302,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.bitcoinsuisse.com/staking/ethereum-2">Bitcoin Suisse Exchange</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">Service</td>
                     <td data-column="Pool token">No</td>
@@ -355,12 +315,27 @@
                     </td>
                   </tr>
                   <tr>
+                    <td data-column="Service"><a href="https://staking.bitfinex.com/">Bitfinex Exchange</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
+                    <td data-column="Validator key owner">Service</td>
+                    <td data-column="Withdrawal key owner">Service</td>
+                    <td data-column="Pool token">?</td>
+                    <td data-column="3rd Party Software">?</td>
+                    <td data-column="Min. Stake">0.00001 ETH</td>
+                    <td data-column="Fee">25% of rewards</td>
+                    <td data-column="Open Source">No</td>
+                    <td data-column="Social">
+                      <i class="fab fa-discord ml-1 mr-1"></i><a href="https://twitter.com/bitfinex" target="_blank"><i class="fab fa-twitter ml-1 mr-1"></i></a><i class="fab fa-telegram ml-1 mr-1"></i><i class="fa fa-mail-bulk ml-1 mr-1"></i>
+                    </td>
+                  </tr>
+                  <tr>
                     <td data-column="Service"><a href="https://bifrost.finance/">Bitfrost</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">?</td>
                     <td data-column="3rd Party Software">No</td>
-                    <td data-column="Min. Stake">0.1</td>
+                    <td data-column="Min. Stake">0.1 ETH</td>
                     <td data-column="Fee">15% of rewards</td>
                     <td data-column="Open Source">No</td>
                     <td data-column="Social">
@@ -369,6 +344,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://stake.bloq.com/">BloqStake</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -382,6 +358,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.bloxstaking.com/">Bloxstaking</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">User</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -394,7 +371,22 @@
                     </td>
                   </tr>
                   <tr>
+                    <td data-column="Service"><a href="https://www.coinbase.com/earn/staking/ethereum">Coinbase Exchange</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
+                    <td data-column="Validator key owner">Service</td>
+                    <td data-column="Withdrawal key owner">Service</td>
+                    <td data-column="Pool token">?</td>
+                    <td data-column="3rd Party Software">?</td>
+                    <td data-column="Min. Stake">0.00001 ETH</td>
+                    <td data-column="Fee">25% of rewards</td>
+                    <td data-column="Open Source">No</td>
+                    <td data-column="Social">
+                      <i class="fab fa-discord ml-1 mr-1"></i><a href="https://twitter.com/coinbase" target="_blank"><i class="fab fa-twitter ml-1 mr-1"></i></a><i class="fab fa-telegram ml-1 mr-1"></i><i class="fa fa-mail-bulk ml-1 mr-1"></i>
+                    </td>
+                  </tr>
+                  <tr>
                     <td data-column="Service"><a href="https://consensys.net/codefi/staking/">Codefi Staking</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">No</td>
@@ -408,6 +400,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.cybavo.com/eth2-staking/">Cybavo</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">Service & User</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -421,6 +414,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://dragonstake.io/">Dragonstake</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">?</td>
@@ -432,6 +426,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://everstake.one/">Everstake</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">?</td>
@@ -443,6 +438,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://guarda.com/">Guarda Wallet</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">Service</td>
                     <td data-column="Pool token">Yes</td>
@@ -456,6 +452,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://token.im/">imToken & InfStones</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -469,6 +466,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.kraken.com/en-us/features/staking-coins">Kraken Exchange</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">?</td>
@@ -482,6 +480,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.launchnodes.com/">Launchnodes</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">User</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -495,12 +494,13 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.lido.fi">Lido Finance</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">Service</td>
                     <td data-column="Pool token">Yes</td>
                     <td data-column="3rd Party Software">No</td>
                     <td data-column="Min. Stake">Any amount</td>
-                    <td data-column="Fee">10%</td>
+                    <td data-column="Fee">10% of rewards</td>
                     <td data-column="Open Source"><a href="https://github.com/lidofinance">Yes</a></td>
                     <td data-column="Social">
                       <a href="https://discord.com/invite/vgdPfhZ" target="_blank"><i class="fab fa-discord ml-1 mr-1"></i></a><a href="https://twitter.com/lidofinance" target="_blank"><i class="fab fa-twitter ml-1 mr-1"></i></a><a href="https://t.me/lidofinance" target="_blank"><i class="fab fa-telegram ml-1 mr-1"></i></a><a href="mailto:info@lido.fi"><i class="fa fa-mail-bulk ml-1 mr-1"></i></a>
@@ -508,6 +508,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://midl.dev/ethereum/">MIDL.dev</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -521,6 +522,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.mycointainer.com/">MyContainer</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">?</td>
@@ -534,6 +536,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://ethereum-staking.p2p.org">P2P.org</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -547,6 +550,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.rocketpool.net/">Rocket Pool (Pool)</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">✅</td>
                     <td data-column="Validator key owner">User</td>
                     <td data-column="Withdrawal key owner">Smart Contract</td>
                     <td data-column="Pool token">Yes</td>
@@ -560,6 +564,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.rocketpool.net/">Rocket Pool (Validator)</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">✅</td>
                     <td data-column="Validator key owner">User</td>
                     <td data-column="Withdrawal key owner">Smart Contract</td>
                     <td data-column="Pool token">Yes</td>
@@ -573,6 +578,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://www.stafi.io/">StaFi</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">?</td>
@@ -586,6 +592,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://staked.us/">StakedUs</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -599,6 +606,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://stake.fish/">stakefish</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❌</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">User</td>
                     <td data-column="Pool token">No</td>
@@ -612,6 +620,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://stakewise.io/app/pool">Stakewise Pool</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">Service</td>
                     <td data-column="Withdrawal key owner">Smart Contract</td>
                     <td data-column="Pool token">Yes</td>
@@ -641,6 +650,7 @@
                   </tr>
                   <tr>
                     <td data-column="Service"><a href="https://swissborg.com/">Swissborg</a></td>
+                    <td data-column="No Supermajority client" style="text-align: center;">❓</td>
                     <td data-column="Validator key owner">?</td>
                     <td data-column="Withdrawal key owner">?</td>
                     <td data-column="Pool token">?</td>
@@ -665,69 +675,8 @@
               <div class="col-md-12 col-lg-10 text-center">
                 <h1 class="h4 ">Request to add your Staking Service</h1>
                 <p class="text-muted col-md-8 px-0 mx-auto">
-                  If you have a staking service and want it to be listed above please fill out the form below or create a <a class="" href="https://github.com/gobitfly/eth2-beaconchain-explorer/blob/master/templates/stakingServices.html">pull request <i class="fab fa-github"></i></a>
+                  If you have a staking service and want it to be listed above please create a <a class="" href="https://github.com/gobitfly/eth2-beaconchain-explorer/blob/master/templates/stakingServices.html">pull request <i class="fab fa-github"></i></a>
                 </p>
-                <form id="contact" action="/stakingServices" method="post">
-                  <div class="text-left">
-                    <div class="form-row">
-                      <div class="form-group col-md-6">
-                        <label for="name">Service Name (required)</label>
-                        <input type="text" class="form-control" id="name" placeholder="Ex. Example Pool" required name="name" />
-                      </div>
-                      <div class="form-group col-md-6">
-                        <label for="url">Website URL (required)</label>
-                        <input type="text" class="form-control" id="url" placeholder="Ex.: https://www.example.com" required name="url" />
-                      </div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group col-md-6">
-                        <label for="Validator key owner">Validator key owner (required)</label>
-                        <input type="text" class="form-control" id="Validator key owner" placeholder="Ex.:  User / Service / User & Service" required name="Validator key owner" />
-                      </div>
-                      <div class="form-group col-md-6">
-                        <label for="stake">Withdrawal key owner (required)</label>
-                        <input type="text" class="form-control" id="Withdrawal key owner" placeholder="Ex.:  User / Service / User & Service" required name="Withdrawal key owner" />
-                      </div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group col-md-6">
-                        <label for="Pool token">Pool token (required)</label>
-                        <input type="text" class="form-control" id="Pool token" placeholder="Ex.:  Yes / No" required name="Pool token" />
-                      </div>
-                      <div class="form-group col-md-6">
-                        <label for="3rdPartySoftware">Install 3rd Party Software (required)</label>
-                        <input type="text" class="form-control" id="3rdPartySoftware" placeholder="Ex.: Yes / No (User needs to run software)" required name="3rdPartySoftware" />
-                      </div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group col-md-6">
-                        <label for="fee">Fee (required)</label>
-                        <input type="text" class="form-control" id="fee" required name="fee" placeholder="Ex. 5%" />
-                      </div>
-
-                      <div class="form-group col-md-6">
-                        <label for="stake">Min Stake (required)</label>
-                        <input type="text" class="form-control" id="stake" placeholder="Ex.: 32 ETH" required name="stake" />
-                      </div>
-                    </div>
-                    <div class="form-row">
-                      <div class="form-group col-md-6">
-                        <label for="open">Open Source (required)</label>
-                        <input type="text" class="form-control" id="open" required name="open" placeholder="Ex. Yes, https://github.com/repo" />
-                      </div>
-                      <div class="form-group col-md-6">
-                        <label for="links">Social Links (required)</label>
-                        <input type="text" class="form-control" id="links" required name="links" placeholder="Ex. https://discord.com/xyz, https://twitter.com/example...." />
-                      </div>
-                    </div>
-
-                    <div class="form-group">
-                      <label for="inputQuestions">Comments & Questions</label>
-                      <textarea class="form-control" id="inputQuestions" name="comments"></textarea>
-                    </div>
-                  </div>
-                  <button data-sitekey="{{ .RecaptchaKey }}" data-callback="onSubmit" data-action="submit" type="submit" class="g-recaptcha btn btn-primary text-center text-white">Send Request</button>
-                </form>
               </div>
             </div>
           </div>

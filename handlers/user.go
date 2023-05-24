@@ -27,6 +27,7 @@ import (
 	"github.com/gorilla/csrf"
 	"github.com/gorilla/mux"
 	"github.com/lib/pq"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -191,9 +192,14 @@ func UserAuthorizeConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	appData, err := db.GetAppDataFromRedirectUri(redirectURI)
-
 	if err != nil {
-		logger.Errorf("error app not found: %v: %v: %v", user.UserID, appData, err)
+		logger.WithFields(
+			logrus.Fields{
+				"user.UserID": user.UserID,
+				"appData":     appData,
+				"redirectURI": redirectURI,
+			},
+		).WithError(err).Errorf("error app not found")
 		utils.SetFlash(w, r, authSessionName, "Error: App not found. Is your redirect_uri correct and registered?")
 		session.Save(r, w)
 	} else {
@@ -1190,11 +1196,7 @@ func UserUpdateFlagsPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shareStats := FormValueOrJSON(r, "shareStats")
-
-	logger.Errorf("shareStats: %v", shareStats)
-
-	err = db.SetUserMonitorSharingSetting(user.UserID, shareStats == "true")
+	err = db.SetUserMonitorSharingSetting(user.UserID, FormValueOrJSON(r, "shareStats") == "true")
 	if err != nil {
 		logger.Errorf("error setting user monitor sharing settings: %v", err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -1216,7 +1218,7 @@ func UserUpdatePasswordPost(w http.ResponseWriter, r *http.Request) {
 
 	err = r.ParseForm()
 	if err != nil {
-		logger.Errorf("error parsing form: %v", err)
+		utils.LogError(err, "error parsing form", 0)
 		session.AddFlash(authInternalServerErrorFlashMsg)
 		session.Save(r, w)
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -1311,7 +1313,7 @@ func UserUpdateEmailPost(w http.ResponseWriter, r *http.Request) {
 
 	err = r.ParseForm()
 	if err != nil {
-		logger.Errorf("error parsing form: %v", err)
+		utils.LogError(err, "error parsing form", 0)
 		session.AddFlash(authInternalServerErrorFlashMsg)
 		session.Save(r, w)
 		http.Redirect(w, r, "/user/settings", http.StatusSeeOther)
@@ -1910,7 +1912,7 @@ func internUserNotificationsSubscribe(event, filter string, threshold float64, w
 			network = ""
 		}
 
-		if filterLen == 0 && (eventName == types.RocketpoolColleteralMaxReached || eventName == types.RocketpoolColleteralMinReached) {
+		if filterLen == 0 && (eventName == types.RocketpoolCollateralMaxReached || eventName == types.RocketpoolCollateralMinReached) {
 
 			myValidators, err2 := db.GetTaggedValidators(filterWatchlist)
 			if err2 != nil {
@@ -2059,7 +2061,7 @@ func internUserNotificationsUnsubscribe(event, filter string, w http.ResponseWri
 			}
 		}
 	} else {
-		if filterLen == 0 && (eventName == types.RocketpoolColleteralMaxReached || eventName == types.RocketpoolColleteralMinReached) {
+		if filterLen == 0 && (eventName == types.RocketpoolCollateralMaxReached || eventName == types.RocketpoolCollateralMinReached) {
 
 			err = db.DeleteAllSubscription(user.UserID, utils.GetNetwork(), eventName)
 			if err != nil {
@@ -2517,7 +2519,7 @@ func NotificationWebhookPage(w http.ResponseWriter, r *http.Request) {
 		ls := template.HTML(`N/A`)
 
 		if wh.LastSent.Valid {
-			ls = utils.FormatTimestampTs(wh.LastSent.Time)
+			ls = utils.FormatTimestamp(wh.LastSent.Time.Unix())
 		}
 
 		whErr := types.UserWebhookRowError{}
@@ -2619,7 +2621,7 @@ func UsersAddWebhook(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 	if err != nil {
-		logger.WithError(err).Errorf("error parsing form")
+		utils.LogError(err, "error parsing form", 0)
 		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong adding your webhook, please try again in a bit.")
 		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
@@ -2756,7 +2758,7 @@ func UsersEditWebhook(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 	if err != nil {
-		logger.WithError(err).Errorf("error parsing form")
+		utils.LogError(err, "error parsing form", 0)
 		utils.SetFlash(w, r, authSessionName, "Error: Something went wrong editing your webhook, please try again in a bit.")
 		http.Redirect(w, r, "/user/webhooks", http.StatusSeeOther)
 		return
@@ -2897,9 +2899,7 @@ func UsersNotificationChannels(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 	if err != nil {
-		logger.Errorf("error parsing form: %v", err)
-		// session.AddFlash(authInternalServerErrorFlashMsg)
-		// session.Save(r, w)
+		utils.LogError(err, "error parsing form", 0)
 		http.Redirect(w, r, "/user/notifications", http.StatusSeeOther)
 		return
 	}
@@ -3011,7 +3011,7 @@ func UserGlobalNotificationPost(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
 	if err != nil {
-		logger.Errorf("error parsing form: %v", err)
+		utils.LogError(err, "error parsing form", 0)
 		http.Redirect(w, r, "/user/global_notification", http.StatusSeeOther)
 		return
 	}

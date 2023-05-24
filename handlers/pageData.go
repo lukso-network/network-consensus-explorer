@@ -34,7 +34,7 @@ func InitPageData(w http.ResponseWriter, r *http.Request, active, path, title st
 	data := &types.PageData{
 		Meta: &types.Meta{
 			Title:       fullTitle,
-			Description: "beaconcha.in makes LUKSO accessible to non-technical end users",
+			Description: "LUKSO Consensus explorer makes LUKSO accessible to non-technical end users",
 			Path:        path,
 			GATag:       utils.Config.Frontend.GATag,
 			NoTrack:     false,
@@ -78,7 +78,7 @@ func InitPageData(w http.ResponseWriter, r *http.Request, active, path, title st
 			CurrentSymbol:          GetCurrencySymbol(r),
 		},
 		Mainnet:             utils.Config.Chain.Config.ConfigName == "mainnet",
-		DepositContract:     utils.Config.Indexer.Eth1DepositContractAddress,
+		DepositContract:     utils.Config.Chain.Config.DepositContractAddress,
 		ClientsUpdated:      ethclients.ClientsUpdated(),
 		ChainConfig:         utils.Config.Chain.Config,
 		Lang:                "en-US",
@@ -310,6 +310,168 @@ func createMenuItems(active string, isMain bool) []types.MainMenuItem {
 			Label:    "Dashboard",
 			IsActive: active == "dashboard",
 			Path:     "/dashboard",
+		},
+		{
+			Label:    "Notifications",
+			IsActive: false,
+			Path:     "/user/notifications",
+		},
+		{
+			Label:        "More",
+			IsActive:     active == "more",
+			HasBigGroups: true,
+			Groups: []types.NavigationGroup{
+				{
+					Label: "Staking Pools",
+					Links: []types.NavigationLink{
+						{
+							Label:         "Run a Validator!",
+							Path:          "https://ethpool.org/",
+							CustomIcon:    "ethermine_staking_logo_svg",
+							IsHighlighted: true,
+						},
+						{
+							Label:      "ETH.STORE®",
+							Path:       "/ethstore",
+							CustomIcon: "ethermine_stake_logo_svg",
+						},
+						{
+							Label: "Staking Services",
+							Path:  "/stakingServices",
+							Icon:  "fa-drumstick-bite",
+						},
+						{
+							Label: "Pool Benchmarks",
+							Path:  "/pools",
+							Icon:  "fa-chart-pie",
+						},
+						{
+							Label: "Rocket Pool Stats",
+							Path:  "/pools/rocketpool",
+							Icon:  "fa-rocket",
+						},
+					},
+				}, {
+					Label: "Stats",
+					Links: []types.NavigationLink{
+						{
+							Label: "Charts",
+							Path:  "/charts",
+							Icon:  "fa-chart-bar",
+						},
+						{
+							Label: "Income History",
+							Path:  "/rewards",
+							Icon:  "fa-money-bill-alt",
+						},
+						{
+							Label: "Profit Calculator",
+							Path:  "/calculator",
+							Icon:  "fa-calculator",
+						},
+						{
+							Label: "Block Viz",
+							Path:  "/vis",
+							Icon:  "fa-project-diagram",
+						},
+						{
+							Label: "Relays",
+							Path:  "/relays",
+							Icon:  "fa-robot",
+						},
+						{
+							Label: "EIP-1559 Burn",
+							Path:  "/burn",
+							Icon:  "fa-burn",
+						},
+						{
+							Label:    "Correlations",
+							Path:     "/correlations",
+							Icon:     "fa-chart-line",
+							IsHidden: !isMain,
+						},
+					},
+				}, {
+					Label: "Tools",
+					Links: []types.NavigationLink{
+						{
+							Label: "beaconcha.in App",
+							Path:  "/mobile",
+							Icon:  "fa-mobile-alt",
+						},
+						{
+							Label: "beaconcha.in Premium",
+							Path:  "/premium",
+							Icon:  "fa-gem",
+						},
+						{
+							Label:      "Webhooks",
+							Path:       "/user/webhooks",
+							CustomIcon: "webhook_logo_svg",
+						},
+						{
+							Label: "API Docs",
+							Path:  "/api/v1/docs/index.html",
+							Icon:  "fa-book-reader",
+						},
+						{
+							Label: "API Pricing",
+							Path:  "/pricing",
+							Icon:  "fa-laptop-code",
+						},
+						{
+							Label: "Unit Converter",
+							Path:  "/tools/unitConverter",
+							Icon:  "fa-sync",
+						},
+						{
+							Label: "GasNow",
+							Path:  "/gasnow",
+							Icon:  "fa-gas-pump",
+						},
+						{
+							Label: "Broadcast Signed Messages",
+							Path:  "/tools/broadcast",
+							Icon:  "fa-bullhorn",
+						},
+					},
+				}, {
+					Label: "Services",
+					Links: []types.NavigationLink{
+						{
+							Label:         "Eversteel",
+							Path:          "https://eversteel.io/",
+							CustomIcon:    "eversteel_logo_svg",
+							IsHighlighted: true,
+						},
+						{
+							Label: "Knowledge Base",
+							Path:  "https://kb.beaconcha.in",
+							Icon:  "fa-external-link-alt",
+						},
+						{
+							Label: "Notifications",
+							Path:  "/user/notifications",
+							Icon:  "fa-bell",
+						},
+						{
+							Label: "Graffiti Wall",
+							Path:  "/graffitiwall",
+							Icon:  "fa-paint-brush",
+						},
+						{
+							Label: "Ethereum Clients",
+							Path:  "/ethClients",
+							Icon:  "fa-desktop",
+						},
+						{
+							Label: "Slot Finder",
+							Path:  "/slots/finder",
+							Icon:  "fa-cube",
+						},
+					},
+				},
+			},
 		},
 	}
 }

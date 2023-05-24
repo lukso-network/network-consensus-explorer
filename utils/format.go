@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/prysmaticlabs/go-bitfield"
 	"github.com/shopspring/decimal"
@@ -469,16 +468,21 @@ func FormatGraffitiAsLink(graffiti []byte) template.HTML {
 // hash is required, trunc is optional.
 // Only the first value in trunc_opt will be used.
 func FormatHash(hash []byte, trunc_opt ...bool) template.HTML {
-	trunc := true
-	if len(trunc_opt) > 0 {
-		trunc = trunc_opt[0]
-	}
+	return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">%s</span>", FormatHashRaw(hash, trunc_opt...)))
+}
 
-	// return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">0x%x</span>", hash))
-	if len(hash) > 3 && trunc {
-		return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">%#x…%x</span>", hash[:2], hash[len(hash)-2:]))
+// FormatHashRaw will return a hash formated
+// hash is required, trunc is optional.
+// Only the first value in trunc_opt will be used.
+func FormatHashRaw(hash []byte, trunc_opt ...bool) string {
+	s := fmt.Sprintf("%#x", hash)
+	if len(s) == 42 { // if it's an address, we checksum it (0x + 40)
+		s = common.BytesToAddress(hash).Hex()
 	}
-	return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">%#x</span>", hash))
+	if len(s) >= 10 && (len(trunc_opt) < 1 || trunc_opt[0]) {
+		return fmt.Sprintf("%s…%s", s[:6], s[len(s)-4:])
+	}
+	return s
 }
 
 // WithdrawalCredentialsToAddress converts withdrawalCredentials to an address if possible
@@ -798,17 +802,12 @@ func FormatMachineName(machineName string) template.HTML {
 
 // FormatTimestamp will return a timestamp formated as html. This is supposed to be used together with client-side js
 func FormatTimestamp(ts int64) template.HTML {
-	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" title=\"%v\" data-toggle=\"tooltip\" data-placement=\"top\" data-timestamp=\"%d\"></span>", time.Unix(ts, 0), ts))
+	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" data-toggle=\"tooltip\" data-placement=\"top\" data-timestamp=\"%d\"></span>", ts))
 }
 
-// FormatTs will return a timestamp formated as html. This is supposed to be used together with client-side js
+// FormatTsWithoutTooltip will return a timestamp formated as html. This is supposed to be used together with client-side js
 func FormatTsWithoutTooltip(ts int64) template.HTML {
 	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" data-timestamp=\"%d\"></span>", ts))
-}
-
-// FormatTimestamp will return a timestamp formated as html. This is supposed to be used together with client-side js
-func FormatTimestampTs(ts time.Time) template.HTML {
-	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" title=\"%v\" data-timestamp=\"%d\"></span>", ts, ts.Unix()))
 }
 
 // FormatValidatorStatus will return the validator-status formated as html
@@ -1223,11 +1222,6 @@ func FormatEth1TxStatus(status uint64) template.HTML {
 	} else {
 		return template.HTML("<h5 class=\"m-0\"><span class=\"badge badge-danger badge-pill align-middle text-white\"><i class=\"fas fa-times-circle\"></i> Failed</span></h5>")
 	}
-}
-
-// FormatTimestamp will return a timestamp formated as html. This is supposed to be used together with client-side js
-func FormatTimestampUInt64(ts uint64) template.HTML {
-	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" title=\"%v\" data-toggle=\"tooltip\" data-placement=\"top\" data-timestamp=\"%d\"></span>", time.Unix(int64(ts), 0), ts))
 }
 
 // FormatEth1AddressFull will return the eth1-address formated as html

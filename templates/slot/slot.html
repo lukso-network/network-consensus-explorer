@@ -138,7 +138,8 @@
       const infLoading = document.getElementById('attestations');
       if(infLoading) {
         try {
-          const res = await fetch(`/slot/${encodeURI({{.Slot}})}/attestations`);
+          const slot = {{ .Slot }} || 0;
+          const res = await fetch(`/slot/${encodeURI(slot)}/attestations`);
           const data = await res.json();
 
           for (let i = 1; i < data.length; ++i) {
@@ -173,7 +174,7 @@
           {
             targets: 4,
             render: function (data, type, row) {
-              return `<div class="d-flex"><div data-toggle="tooltip" title="${data}" style="max-width: 130px;" class="text-truncate">${data}</div><i class="fa fa-copy text-muted p-1" role="button" data-toggle="tooltip" title="Copy to clipboard" data-clipboard-text="${data}"></i></div>`
+              return `<div class="d-flex"><div data-toggle="tooltip" title="${row[4]}" style="max-width: 130px;" class="text-truncate">${row[5]}</div><i class="fa fa-copy text-muted p-1" role="button" data-toggle="tooltip" title="Copy to clipboard" data-clipboard-text="${row[4]}"></i></div>`
             },
           },
         ],
@@ -204,6 +205,13 @@
         serverSide: true,
         ordering: false,
         stateSave: true,
+        stateSaveCallback: function (settings, data) {
+          data.start = 0
+          localStorage.setItem("DataTables_" + settings.sInstance, JSON.stringify(data))
+        },
+        stateLoadCallback: function (settings) {
+          return JSON.parse(localStorage.getItem("DataTables_" + settings.sInstance))
+        },
         searching: true,
         ajax: "/slot/" + slotNumber + "/votes",
         pageLength: 16,
