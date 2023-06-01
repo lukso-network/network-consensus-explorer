@@ -1176,9 +1176,6 @@ func FormatAddressEthBalance(balance *types.Eth1AddressBalance) template.HTML {
 	p := message.NewPrinter(language.English)
 	return template.HTML(p.Sprintf(fmt.Sprintf(`
 		<div class="d-flex align-items-center">
-			<svg style="width: 1rem; height: 1rem;">
-				<use xlink:href="#ethereum-diamond-logo"/>
-			</svg> 
 			<span class="token-holdings">%%.%df LYX</span>
 		</div>`, e.Int64()), balEth))
 }
