@@ -306,5 +306,10 @@ func createMenuItems(active string, isMain bool) []types.MainMenuItem {
 				},
 			},
 		},
+		{
+			Label:    "Dashboard",
+			IsActive: active == "dashboard",
+			Path:     "/dashboard",
+		},
 	}
 }
