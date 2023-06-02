@@ -415,7 +415,7 @@ $(document).ready(function () {
       clearSearch.empty().append(copyIcon)
     }, 500)
   })
-
+  $.fn.DataTable.ext.pager.numbers_length = 5
   var validatorsDataTable = (window.vdt = $("#validators").DataTable({
     processing: true,
     serverSide: false,
@@ -428,6 +428,10 @@ $(document).ready(function () {
     language: {
       search: "",
       searchPlaceholder: "Search...",
+      paginate: {
+        previous: '<i class="fas fa-chevron-left"></i>',
+        next: '<i class="fas fa-chevron-right"></i>',
+      },
     },
     preDrawCallback: function () {
       // this does not always work.. not sure how to solve the staying tooltip
@@ -525,7 +529,7 @@ $(document).ready(function () {
         render: function (data, type, row, meta) {
           if (type == "sort" || type == "type") return data ? data[0] : null
           if (data === null) return "No Attestation found"
-          return `<span>${getRelativeTime(luxon.DateTime.fromMillis(data[1] * 1000))}</span>`
+          return `${data[1]}`
         },
       },
       {
@@ -745,11 +749,15 @@ $(document).ready(function () {
 
   function renderDashboardInfo() {
     var el = document.getElementById("dashboard-info")
+    var depositedText = ""
+    if (state.validatorsCount.deposited > 0) {
+      depositedText = `, ${state.validatorsCount.deposited} deposited`
+    }
     var slashedText = ""
     if (state.validatorsCount.slashed > 0) {
       slashedText = `, ${state.validatorsCount.slashed} slashed`
     }
-    el.innerText = `${state.validatorsCount.active_online + state.validatorsCount.active_offline} active (${state.validatorsCount.active_online} online, ${state.validatorsCount.active_offline} offline), ${state.validatorsCount.pending} pending, ${state.validatorsCount.exited + state.validatorsCount.slashed} exited validators (${state.validatorsCount.exited} voluntary${slashedText})`
+    el.innerText = `${state.validatorsCount.active_online + state.validatorsCount.active_offline} active (${state.validatorsCount.active_online} online, ${state.validatorsCount.active_offline} offline)${depositedText}, ${state.validatorsCount.pending} pending, ${state.validatorsCount.exited + state.validatorsCount.slashed} exited validators (${state.validatorsCount.exited} voluntary${slashedText})`
 
     if (state.validators.length > 0) {
       showSelectedValidator()
@@ -979,6 +987,7 @@ $(document).ready(function () {
           // 0:pubkey, 1:idx, 2:[currbal,effbal], 3:state, 4:[actepoch,acttime], 5:[exit,exittime], 6:[wd,wdt], 7:[lasta,lastat], 8:[exprop,misprop]
           // console.log(`latestEpoch: ${result.latestEpoch}`)
           // var latestEpoch = result.latestEpoch
+          state.validatorsCount.deposited = 0
           state.validatorsCount.pending = 0
           state.validatorsCount.active_online = 0
           state.validatorsCount.active_offline = 0
@@ -1158,7 +1167,7 @@ function createBalanceChart(income, executionIncomeHistory) {
         var orig = tooltip.defaultFormatter.call(this, tooltip)
         var epoch = timeToEpoch(this.x)
         orig[0] = `${orig[0]}<span style="font-size:10px">Epoch ${epoch}</span>`
-        if (currency !== "ETH" && currency !== "LYXt") {
+        if (currency !== "ETH" && currency !== "LYX") {
           orig[1] = `<span style="color:${this.points[0].color}">●</span> Daily Income: <b>${this.y.toFixed(2)}</b><br/>`
         }
         return orig
@@ -1177,7 +1186,7 @@ function createBalanceChart(income, executionIncomeHistory) {
         opposite: false,
         labels: {
           formatter: function () {
-            if (currency !== "ETH" && currency !== "LYXt") {
+            if (currency !== "ETH" && currency !== "LYX") {
               return this.value.toFixed(2)
             }
             return this.value.toFixed(5)
@@ -1263,4 +1272,5 @@ function createProposedChart(data) {
       enabled: false,
     },
   })
+  $(".proposal-switch").show()
 }

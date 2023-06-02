@@ -9,6 +9,13 @@
     $("#stats-table").DataTable({
       pageLength: 400,
       stateSave: true,
+      stateSaveCallback: function (settings, data) {
+        data.start = 0
+        localStorage.setItem("DataTables_" + settings.sInstance, JSON.stringify(data))
+      },
+      stateLoadCallback: function (settings) {
+        return JSON.parse(localStorage.getItem("DataTables_" + settings.sInstance))
+      },
       lengthChange: false,
       dom: "Bfrtip",
       buttons: ["copyHtml5", "excelHtml5", "csvHtml5", "pdfHtml5"],
@@ -66,7 +73,7 @@
             <th title="Amount of included attester slashings" data-toggle="tooltip">Att</th>
             <th title="Amount of proposer attester slashings" data-toggle="tooltip">Prop</th>
             <th title="Amount of deposits" data-toggle="tooltip">#</th>
-            <th title="LYXt deposited" data-toggle="tooltip">Amount</th>
+            <th title="LYX deposited" data-toggle="tooltip">Amount</th>
           </tr>
         </thead>
         <tbod>

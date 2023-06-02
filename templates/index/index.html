@@ -50,7 +50,7 @@
                             }
                         },
                         yAxis: [{
-                            title: {text: 'Balance [LYXt]'},
+                            title: {text: 'Balance [LYX]'},
                             labels: {
                                 formatter: function () {
                                     return this.value.toFixed(0);
@@ -68,7 +68,7 @@
                         }],
                         series: [
                             {
-                                name: "Staked LYXt",
+                                name: "Staked LYX",
                                 yAxis: 0,
                                 data: {{.StakedEtherChartData}}
                             },
@@ -80,6 +80,7 @@
                         ],
                         legend: {enabled: true},
                         tooltip: {
+                            valueDecimals: 0,
                             formatter: function (tooltip) {
                                 var orig = tooltip.defaultFormatter.call(this, tooltip)
                                 var epoch = timeToEpoch(this.x)
@@ -108,14 +109,6 @@
                                             opposite: true
                                         }
                                     ],
-                                    tooltip: {
-                                        formatter: function (tooltip) {
-                                            var orig = tooltip.defaultFormatter.call(this, tooltip)
-                                            var epoch = timeToEpoch(this.x)
-                                            orig[0] = `${orig[0]}<span style="font-size:10px">Ep ${epoch}</span>`
-                                            return orig
-                                        }
-                                    },
                                 },
                             },
                         ],
@@ -142,6 +135,9 @@
             filters: {
                 fromNow(date) {
                     return getRelativeTime(luxon.DateTime.fromISO(date));
+                },
+                timestampTooltip(date){
+                    return formatTimestampsTooltip(luxon.DateTime.fromISO(date))
                 }
             },
             created: function () {

@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/prysmaticlabs/go-bitfield"
 	"github.com/shopspring/decimal"
@@ -115,7 +114,7 @@ func FormatBalanceSql(balanceInt sql.NullInt64, currency string) template.HTML {
 }
 
 func FormatBalanceGwei(balance *int64, currency string) template.HTML {
-	if currency == "ETH" || currency == "LYXt" {
+	if currency == "ETH" || currency == "LYX" {
 		if balance == nil {
 			return template.HTML("<span> 0.00000 " + currency + "</span>")
 		} else if *balance == 0 {
@@ -175,7 +174,7 @@ func FormatBalanceChangeFormated(balance *int64, currencyName string, details *i
 		income += fmt.Sprintf("Total: %s GWei", FormatAddCommasFormated(float64(details.TotalClRewards()), 0))
 	}
 
-	if currencyName == "ETH" || currencyName == "LYXt" {
+	if currencyName == "ETH" || currencyName == "LYX" {
 		if balance == nil || *balance == 0 {
 			return template.HTML("<span class=\"float-right\">0 GWei</span>")
 		}
@@ -205,7 +204,7 @@ func FormatBalanceChangeFormated(balance *int64, currencyName string, details *i
 // FormatBalanceChange will return a string for a balance change
 func FormatBalanceChange(balance *int64, currency string) template.HTML {
 	balanceF := float64(*balance) / float64(1e9)
-	if currency == "ETH" || currency == "LYXt" {
+	if currency == "ETH" || currency == "LYX" {
 		if balance == nil || *balance == 0 {
 			return template.HTML("<span> 0 " + currency + "</span>")
 		}
@@ -337,7 +336,7 @@ func FormatBlockStatusShort(status uint64) template.HTML {
 
 // FormatBlockStatusShort will return an html status for a block.
 func FormatWithdrawalShort(slot uint64, amount uint64) template.HTML {
-	return template.HTML(fmt.Sprintf("<span title=\"Withdrawal processed in epoch %v during slot %v for %v\" data-toggle=\"tooltip\" class=\"mx-1 badge badge-pill bg-success text-white\" style=\"font-size: 12px; font-weight: 500;\"><i class=\"fas fa-money-bill\"></i></span>", EpochOfSlot(slot), slot, FormatCurrentBalance(amount, "LYXt")))
+	return template.HTML(fmt.Sprintf("<span title=\"Withdrawal processed in epoch %v during slot %v for %v\" data-toggle=\"tooltip\" class=\"mx-1 badge badge-pill bg-success text-white\" style=\"font-size: 12px; font-weight: 500;\"><i class=\"fas fa-money-bill\"></i></span>", EpochOfSlot(slot), slot, FormatCurrentBalance(amount, "LYX")))
 }
 
 func FormatTransactionType(txnType uint8) string {
@@ -355,7 +354,7 @@ func FormatTransactionType(txnType uint8) string {
 
 // FormatCurrentBalance will return the current balance formated as string with 9 digits after the comma (1 gwei = 1e9 eth)
 func FormatCurrentBalance(balanceInt uint64, currency string) template.HTML {
-	if currency == "ETH" || currency == "LYXt" {
+	if currency == "ETH" || currency == "LYX" {
 		exchangeRate := ExchangeRateForCurrency(currency)
 		balance := float64(balanceInt) / float64(1e9)
 		return template.HTML(fmt.Sprintf("%.5f %v", balance*exchangeRate, currency))
@@ -441,7 +440,7 @@ func FormatGlobalParticipationRate(e uint64, r float64, currency string) templat
 func FormatEtherValue(symbol string, ethPrice *big.Float, currentPrice template.HTML) template.HTML {
 	p := message.NewPrinter(language.English)
 	ep, _ := ethPrice.Float64()
-	return template.HTML(p.Sprintf(`<span>%s %.2f</span> <span class="text-muted">@ %s/LYXt</span>`, symbol, ep, currentPrice))
+	return template.HTML(p.Sprintf(`<span>%s %.2f</span> <span class="text-muted">@ %s/LYX</span>`, symbol, ep, currentPrice))
 }
 
 // FormatGraffiti will return the graffiti formated as html
@@ -469,16 +468,21 @@ func FormatGraffitiAsLink(graffiti []byte) template.HTML {
 // hash is required, trunc is optional.
 // Only the first value in trunc_opt will be used.
 func FormatHash(hash []byte, trunc_opt ...bool) template.HTML {
-	trunc := true
-	if len(trunc_opt) > 0 {
-		trunc = trunc_opt[0]
-	}
+	return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">%s</span>", FormatHashRaw(hash, trunc_opt...)))
+}
 
-	// return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">0x%x</span>", hash))
-	if len(hash) > 3 && trunc {
-		return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">%#x…%x</span>", hash[:2], hash[len(hash)-2:]))
+// FormatHashRaw will return a hash formated
+// hash is required, trunc is optional.
+// Only the first value in trunc_opt will be used.
+func FormatHashRaw(hash []byte, trunc_opt ...bool) string {
+	s := fmt.Sprintf("%#x", hash)
+	if len(s) == 42 { // if it's an address, we checksum it (0x + 40)
+		s = common.BytesToAddress(hash).Hex()
 	}
-	return template.HTML(fmt.Sprintf("<span class=\"text-monospace\">%#x</span>", hash))
+	if len(s) >= 10 && (len(trunc_opt) < 1 || trunc_opt[0]) {
+		return fmt.Sprintf("%s…%s", s[:6], s[len(s)-4:])
+	}
+	return s
 }
 
 // WithdrawalCredentialsToAddress converts withdrawalCredentials to an address if possible
@@ -726,7 +730,7 @@ func exchangeAndTrim(currency string, amount int64) string {
 	decimals := 5
 	preCommaDecimals := 1
 
-	if currency != "ETH" && currency != "LYXt" {
+	if currency != "ETH" && currency != "LYX" {
 		decimals = 2
 		preCommaDecimals = 4
 	}
@@ -798,24 +802,19 @@ func FormatMachineName(machineName string) template.HTML {
 
 // FormatTimestamp will return a timestamp formated as html. This is supposed to be used together with client-side js
 func FormatTimestamp(ts int64) template.HTML {
-	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" title=\"%v\" data-toggle=\"tooltip\" data-placement=\"top\" data-timestamp=\"%d\"></span>", time.Unix(ts, 0), ts))
+	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" data-toggle=\"tooltip\" data-placement=\"top\" data-timestamp=\"%d\"></span>", ts))
 }
 
-// FormatTs will return a timestamp formated as html. This is supposed to be used together with client-side js
+// FormatTsWithoutTooltip will return a timestamp formated as html. This is supposed to be used together with client-side js
 func FormatTsWithoutTooltip(ts int64) template.HTML {
 	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" data-timestamp=\"%d\"></span>", ts))
-}
-
-// FormatTimestamp will return a timestamp formated as html. This is supposed to be used together with client-side js
-func FormatTimestampTs(ts time.Time) template.HTML {
-	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" title=\"%v\" data-timestamp=\"%d\"></span>", ts, ts.Unix()))
 }
 
 // FormatValidatorStatus will return the validator-status formated as html
 // possible states
 // pending, active_online, active_offline, exiting_online, exciting_offline, slashing_online, slashing_offline, exited, slashed
 func FormatValidatorStatus(status string) template.HTML {
-	if status == "deposited" || status == "deposited_valid" || status == "deposited_invalid" {
+	if status == "deposited" || status == "deposited_invalid" {
 		return "<span><b>Deposited</b></span>"
 	} else if status == "pending" {
 		return "<span><b>Pending</b></span>"
@@ -1090,7 +1089,7 @@ func FormatRPL(num string) string {
 
 func FormatETH(num string) string {
 	floatNum, _ := strconv.ParseFloat(num, 64)
-	return fmt.Sprintf("%.4f", floatNum/math.Pow10(18)) + " LYXt"
+	return fmt.Sprintf("%.4f", floatNum/math.Pow10(18)) + " LYX"
 }
 
 func FormatFloat(num float64, precision int) string {
@@ -1120,7 +1119,7 @@ func FormatBlockReward(blockNumber int64) template.HTML {
 		reward = big.NewInt(2e+18)
 	}
 
-	return FormatAmount(reward, "LYXt", 5)
+	return FormatAmount(reward, "LYX", 5)
 }
 
 func FormatTokenBalance(balance *types.Eth1AddressBalance) template.HTML {
@@ -1177,10 +1176,7 @@ func FormatAddressEthBalance(balance *types.Eth1AddressBalance) template.HTML {
 	p := message.NewPrinter(language.English)
 	return template.HTML(p.Sprintf(fmt.Sprintf(`
 		<div class="d-flex align-items-center">
-			<svg style="width: 1rem; height: 1rem;">
-				<use xlink:href="#ethereum-diamond-logo"/>
-			</svg> 
-			<span class="token-holdings">%%.%df LYXt</span>
+			<span class="token-holdings">%%.%df LYX</span>
 		</div>`, e.Int64()), balEth))
 }
 
@@ -1223,11 +1219,6 @@ func FormatEth1TxStatus(status uint64) template.HTML {
 	} else {
 		return template.HTML("<h5 class=\"m-0\"><span class=\"badge badge-danger badge-pill align-middle text-white\"><i class=\"fas fa-times-circle\"></i> Failed</span></h5>")
 	}
-}
-
-// FormatTimestamp will return a timestamp formated as html. This is supposed to be used together with client-side js
-func FormatTimestampUInt64(ts uint64) template.HTML {
-	return template.HTML(fmt.Sprintf("<span class=\"timestamp\" title=\"%v\" data-toggle=\"tooltip\" data-placement=\"top\" data-timestamp=\"%d\"></span>", time.Unix(int64(ts), 0), ts))
 }
 
 // FormatEth1AddressFull will return the eth1-address formated as html

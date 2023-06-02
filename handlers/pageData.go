@@ -34,7 +34,7 @@ func InitPageData(w http.ResponseWriter, r *http.Request, active, path, title st
 	data := &types.PageData{
 		Meta: &types.Meta{
 			Title:       fullTitle,
-			Description: "beaconcha.in makes LUKSO accessible to non-technical end users",
+			Description: "LUKSO Consensus explorer makes LUKSO accessible to non-technical end users",
 			Path:        path,
 			GATag:       utils.Config.Frontend.GATag,
 			NoTrack:     false,
@@ -78,7 +78,7 @@ func InitPageData(w http.ResponseWriter, r *http.Request, active, path, title st
 			CurrentSymbol:          GetCurrencySymbol(r),
 		},
 		Mainnet:             utils.Config.Chain.Config.ConfigName == "mainnet",
-		DepositContract:     utils.Config.Indexer.Eth1DepositContractAddress,
+		DepositContract:     utils.Config.Chain.Config.DepositContractAddress,
 		ClientsUpdated:      ethclients.ClientsUpdated(),
 		ChainConfig:         utils.Config.Chain.Config,
 		Lang:                "en-US",

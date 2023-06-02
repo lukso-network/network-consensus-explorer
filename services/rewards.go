@@ -27,8 +27,10 @@ func GetValidatorHist(validatorArr []uint64, currency string, start uint64, end 
 	var err error
 
 	var pricesDb []types.Price
+	// we get prices with a 1 day buffer to so we have no problems in different time zones
+	var oneDay = 24 * 60 * 60
 	err = db.WriterDb.Select(&pricesDb,
-		`select ts, eur, usd, gbp, cad, jpy, cny, rub, aud from price where ts >= TO_TIMESTAMP($1) and ts <= TO_TIMESTAMP($2) order by ts desc`, start, end)
+		`select ts, eur, usd, gbp, cad, jpy, cny, rub, aud from price where ts >= TO_TIMESTAMP($1) and ts <= TO_TIMESTAMP($2) order by ts desc`, start-uint64(oneDay), end+uint64(oneDay))
 	if err != nil {
 		logger.Errorf("error getting prices: %v", err)
 	}
@@ -36,7 +38,13 @@ func GetValidatorHist(validatorArr []uint64, currency string, start uint64, end 
 	lowerBound := utils.TimeToDay(start)
 	upperBound := utils.TimeToDay(end)
 
-	income, _, err := db.GetValidatorIncomeHistory(validatorArr, lowerBound+1, upperBound)
+	// As the genesis timestamp is in the middle of the day and we get timestamps from the ui from the start of the day we add one to get the correct day,
+	// except for the beaconchain day where we get a timestamp lower then the genesis day. The TimeToDay function still would transform it to 0 (and not -1) so we don't need to add one.
+	if start > utils.Config.Chain.GenesisTimestamp {
+		lowerBound++
+	}
+
+	income, err := db.GetValidatorIncomeHistory(validatorArr, lowerBound, upperBound)
 	if err != nil {
 		logger.Errorf("error getting income history for validator hist: %v", err)
 	}
@@ -82,7 +90,7 @@ func GetValidatorHist(validatorArr []uint64, currency string, start uint64, end 
 		data[i] = []string{
 			key,
 			addCommas(float64(item.EndBalance.Int64)/1e9, "%.5f"),                           // end of day balance
-			addCommas(iETH, "%.5f"),                                                         // income of day LYXt
+			addCommas(iETH, "%.5f"),                                                         // income of day LYX
 			fmt.Sprintf("%s %s", strings.ToUpper(currency), addCommas(prices[key], "%.2f")), //price will default to 0 if key does not exist
 			fmt.Sprintf("%s %s", strings.ToUpper(currency), addCommas(iCur, "%.2f")),        // income of day Currency
 		}
@@ -163,7 +171,7 @@ func GeneratePdfReport(hist rewardHistory, currency string) []byte {
 	// pdf.Ln(-1)
 	pdf.CellFormat(0, maxHt, fmt.Sprintf("Income For Timeframe %s | %s", hist.TotalETH, hist.TotalCurrency), "", 0, "CM", true, 0, "")
 
-	header := [colCount]string{"Date", "Balance", "Income", "LYXt Value", fmt.Sprintf("Income (%v)", currency)}
+	header := [colCount]string{"Date", "Balance", "Income", fmt.Sprintf("Income (%v)", currency)}
 
 	// pdf.SetMargins(marginH, marginH, marginH)
 	pdf.Ln(10)

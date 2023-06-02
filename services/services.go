@@ -81,6 +81,9 @@ func Init() {
 	ready.Add(1)
 	go startMonitoringService(ready)
 
+	ready.Add(1)
+	go lastBlockInBlocksTableUpdater(ready)
+
 	ready.Wait()
 }
 
@@ -99,6 +102,32 @@ func InitNotifications(pubkeyCachePath string) {
 	go notificationCollector()
 }
 
+func lastBlockInBlocksTableUpdater(wg *sync.WaitGroup) {
+	firstRun := true
+
+	for {
+		lastBlock, err := db.BigtableClient.GetLastBlockInBlocksTable()
+		if err != nil {
+			utils.LogError(err, "could not retrieve latest block number from the blocks table", 0)
+			time.Sleep(time.Second * 10)
+			continue
+		}
+
+		cacheKey := fmt.Sprintf("%d:frontend:lastBlockInBlocksTable", utils.Config.Chain.Config.DepositChainID)
+		err = cache.TieredCache.SetUint64(cacheKey, uint64(lastBlock), time.Hour*24)
+		if err != nil {
+			utils.LogError(err, "caching lastBlockInBlocksTable", 0)
+		}
+		if firstRun {
+			logger.Info("initialized lastBlockInBlocksTable updater")
+			wg.Done()
+			firstRun = false
+		}
+		ReportStatus("lastBlockInBlocksTableUpdater", "Running", nil)
+		time.Sleep(time.Minute)
+	}
+}
+
 func getRelaysPageData() (*types.RelaysResp, error) {
 	start := time.Now()
 	defer func() {
@@ -108,28 +137,44 @@ func getRelaysPageData() (*types.RelaysResp, error) {
 
 	relaysData.LastUpdated = start
 
+	networkParticipationQuery, err := db.ReaderDb.Preparex(`
+		SELECT 
+			(SELECT
+				COUNT(DISTINCT block_slot) AS block_count
+			FROM relays_blocks
+			WHERE 
+				block_slot > $1 AND 
+				block_root NOT IN (SELECT bt.blockroot FROM blocks_tags bt WHERE bt.tag_id='invalid-relay-reward') 
+			) / (MAX(blocks.slot) - $1)::float AS network_participation
+		FROM blocks`)
+	if err != nil {
+		logger.Errorf("failed to prepare networkParticipationQuery: %v", err)
+		return nil, err
+	}
+	defer networkParticipationQuery.Close()
+
 	overallStatsQuery, err := db.ReaderDb.Preparex(`
-		with stats as (
-			select 
-				tag_id as relay_id,
-				count(*) as block_count,
-				sum(value) as total_value,
-				ROUND(avg(value)) as avg_value,
-				count(distinct builder_pubkey) as unique_builders,
-				max(value) as max_value,
-				(select rb2.block_slot from relays_blocks rb2 where rb2.value = max(rb.value) and rb2.tag_id = rb.tag_id limit 1) as max_value_slot
-			from relays_blocks rb
-			where 
-				rb.block_slot > $1 and 
-				rb.block_root not in (select bt.blockroot from blocks_tags bt where bt.tag_id='invalid-relay-reward') 
-			group by tag_id 
+		WITH stats AS (
+			SELECT 
+				tag_id AS relay_id,
+				COUNT(*) AS block_count,
+				SUM(value) AS total_value,
+				ROUND(avg(value)) AS avg_value,
+				COUNT(DISTINCT builder_pubkey) AS unique_builders,
+				MAX(value) AS max_value,
+				(SELECT rb2.block_slot FROM relays_blocks rb2 WHERE rb2.value = MAX(rb.value) AND rb2.tag_id = rb.tag_id LIMIT 1) AS max_value_slot
+			FROM relays_blocks rb
+			WHERE 
+				rb.block_slot > $1 AND 
+				rb.block_root NOT IN (SELECT bt.blockroot FROM blocks_tags bt WHERE bt.tag_id='invalid-relay-reward') 
+			GROUP BY tag_id 
 		)
-		select 
-			tags.metadata ->> 'name' as "name",
-			relays.public_link as link,
-			relays.is_censoring as censors,
-			relays.is_ethical as ethical,
-			stats.block_count / (select max(blocks.slot) - $1 from blocks)::float as network_usage,
+		SELECT 
+			tags.metadata ->> 'name' AS "name",
+			relays.public_link AS link,
+			relays.is_censoring AS censors,
+			relays.is_ethical AS ethical,
+			stats.block_count / (SELECT MAX(blocks.slot) - $1 FROM blocks)::float AS network_usage,
 			stats.relay_id,
 			stats.block_count,
 			stats.total_value,
@@ -137,18 +182,18 @@ func getRelaysPageData() (*types.RelaysResp, error) {
 			stats.unique_builders,
 			stats.max_value,
 			stats.max_value_slot
-		from relays
-		left join stats on stats.relay_id = relays.tag_id
-		left join tags on tags.id = relays.tag_id 
-		where stats.relay_id = tag_id 
-		order by stats.block_count DESC`)
+		FROM relays
+		LEFT JOIN stats ON stats.relay_id = relays.tag_id
+		LEFT JOIN tags ON tags.id = relays.tag_id 
+		WHERE stats.relay_id = tag_id 
+		ORDER BY stats.block_count DESC`)
 	if err != nil {
 		logger.Errorf("failed to prepare overallStatsQuery: %v", err)
 		return nil, err
 	}
 	defer overallStatsQuery.Close()
 
-	dayInSlots := 24 * 60 * 60 / utils.Config.Chain.Config.SecondsPerSlot
+	dayInSlots := uint64(utils.Day/time.Second) / utils.Config.Chain.Config.SecondsPerSlot
 
 	tmp := [3]types.RelayInfoContainer{{Days: 7}, {Days: 31}, {Days: 180}}
 	latest := LatestSlot()
@@ -158,14 +203,17 @@ func getRelaysPageData() (*types.RelaysResp, error) {
 		if latest > tmp[i].Days*dayInSlots {
 			forSlot = latest - (tmp[i].Days * dayInSlots)
 		}
+
+		// calculate total adoption
+		err = networkParticipationQuery.Get(&tmp[i].NetworkParticipation, forSlot)
+		if err != nil {
+			return nil, err
+		}
 		err = overallStatsQuery.Select(&tmp[i].RelaysInfo, forSlot)
 		if err != nil {
 			return nil, err
 		}
-		// calculate total adoption
-		for j := 0; j < len(tmp[i].RelaysInfo); j++ {
-			tmp[i].NetworkParticipation += tmp[i].RelaysInfo[j].NetworkUsage
-		}
+
 	}
 	relaysData.RelaysInfoContainers = tmp
 
@@ -442,16 +490,16 @@ func getPoolsPageData() (*types.PoolsResp, error) {
 
 	ethstoreData := &types.PoolInfo{}
 	err = db.ReaderDb.Get(ethstoreData, `
-	select 'LYXt.STORE' as name, -1 as count, apr * 100 as avg_performance_1d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 7) * 100 as avg_performance_7d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 31) * 100 as avg_performance_31d from eth_store_stats e where day = (select max(day) from eth_store_stats) LIMIT 1;
+	select 'LYX.STORE' as name, -1 as count, apr * 100 as avg_performance_1d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 7) * 100 as avg_performance_7d, (select avg(apr) from eth_store_stats as e1 where e1.validator = -1 AND e1.day > e.day - 31) * 100 as avg_performance_31d from eth_store_stats e where day = (select max(day) from eth_store_stats) LIMIT 1;
 	`)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, pool := range poolData.PoolInfos {
-		pool.EthstoreCompoarison1d = pool.AvgPerformance1d*100/ethstoreData.AvgPerformance1d - 100
-		pool.EthstoreCompoarison7d = pool.AvgPerformance7d*100/ethstoreData.AvgPerformance7d - 100
-		pool.EthstoreCompoarison31d = pool.AvgPerformance31d*100/ethstoreData.AvgPerformance31d - 100
+		pool.EthstoreComparison1d = pool.AvgPerformance1d*100/ethstoreData.AvgPerformance1d - 100
+		pool.EthstoreComparison7d = pool.AvgPerformance7d*100/ethstoreData.AvgPerformance7d - 100
+		pool.EthstoreComparison31d = pool.AvgPerformance31d*100/ethstoreData.AvgPerformance31d - 100
 	}
 	poolData.PoolInfos = append([]*types.PoolInfo{ethstoreData}, poolData.PoolInfos...)
 
@@ -519,7 +567,7 @@ func ethStoreStatisticsDataUpdater(wg *sync.WaitGroup) {
 	for {
 		data, err := getEthStoreStatisticsData()
 		if err != nil {
-			logger.Errorf("error retrieving LYXt.STORE statistics data: %v", err)
+			logger.Errorf("error retrieving LYX.STORE statistics data: %v", err)
 			time.Sleep(time.Second * 10)
 			continue
 		}
@@ -527,12 +575,12 @@ func ethStoreStatisticsDataUpdater(wg *sync.WaitGroup) {
 		cacheKey := fmt.Sprintf("%d:frontend:ethStoreStatistics", utils.Config.Chain.Config.DepositChainID)
 		err = cache.TieredCache.Set(cacheKey, data, time.Hour*24)
 		if err != nil {
-			logger.Errorf("error caching LYXt.STORE statistics data: %v", err)
+			logger.Errorf("error caching LYX.STORE statistics data: %v", err)
 		}
 		if firstRun {
 			firstRun = false
 			wg.Done()
-			logger.Info("initialized LYXt.STORE statistics data updater")
+			logger.Info("initialized LYX.STORE statistics data updater")
 		}
 		ReportStatus("ethStoreStatistics", "Running", nil)
 		time.Sleep(time.Second * 90)
@@ -621,12 +669,12 @@ func getEthStoreStatisticsData() (*types.EthStoreStatistics, error) {
 }
 
 func getIndexPageData() (*types.IndexPageData, error) {
-	currency := "LYXt"
+	currency := "LYX"
 
 	data := &types.IndexPageData{}
 	data.Mainnet = utils.Config.Chain.Config.ConfigName == "mainnet"
 	data.NetworkName = utils.Config.Chain.Config.ConfigName
-	data.DepositContract = utils.Config.Indexer.Eth1DepositContractAddress
+	data.DepositContract = utils.Config.Chain.Config.DepositContractAddress
 
 	var epoch uint64
 	err := db.ReaderDb.Get(&epoch, "SELECT COALESCE(MAX(epoch), 0) FROM epochs")
@@ -832,7 +880,7 @@ func getIndexPageData() (*types.IndexPageData, error) {
 				Finalized:                        false,
 				FinalizedFormatted:               utils.FormatYesNo(false),
 				EligibleEther:                    0,
-				EligibleEtherFormatted:           utils.FormatEligibleBalance(0, "LYXt"),
+				EligibleEtherFormatted:           utils.FormatEligibleBalance(0, "LYX"),
 				GlobalParticipationRate:          0,
 				GlobalParticipationRateFormatted: utils.FormatGlobalParticipationRate(0, 1, ""),
 				VotedEther:                       0,
@@ -882,7 +930,7 @@ func getIndexPageData() (*types.IndexPageData, error) {
 	var epochHistory []*types.IndexPageEpochHistory
 	err = db.WriterDb.Select(&epochHistory, "SELECT epoch, eligibleether, validatorscount, finalized, averagevalidatorbalance FROM epochs WHERE epoch < $1 and epoch > $2 ORDER BY epoch", epoch, epochLowerBound)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving staked LYXt history: %v", err)
+		return nil, fmt.Errorf("error retrieving staked LYX history: %v", err)
 	}
 
 	if len(epochHistory) > 0 {
@@ -1017,9 +1065,13 @@ func LatestEthStoreStatistics() *types.EthStoreStatistics {
 	if wanted, err := cache.TieredCache.GetWithLocalTimeout(cacheKey, time.Second*60, wanted); err == nil {
 		return wanted.(*types.EthStoreStatistics)
 	} else {
-		logger.Errorf("error retrieving LYXt.STORE statistics data from cache: %v", err)
+		logger.Errorf("error retrieving LYX.STORE statistics data from cache: %v", err)
 	}
 	return &types.EthStoreStatistics{}
+}
+
+func EthStoreDisclaimer() string {
+	return "ETH.STORE® is not made available for use as a benchmark, whether in relation to a financial instrument, financial contract or to measure the performance of an investment fund, or otherwise in a way that would require it to be administered by a benchmark administrator pursuant to the EU Benchmarks Regulation. Currently Bitfly does not grant any right to access or use ETH.STORE® for such purpose."
 }
 
 // LatestIndexPageData returns the latest index page data
@@ -1096,6 +1148,18 @@ func LatestGasNowData() *types.GasNowPageData {
 	}
 
 	return nil
+}
+
+func LatestLastBlockInBlocksTableData() int {
+	cacheKey := fmt.Sprintf("%d:frontend:lastBlockInBlocksTable", utils.Config.Chain.Config.DepositChainID)
+
+	if wanted, err := cache.TieredCache.GetUint64WithLocalTimeout(cacheKey, time.Second*5); err == nil {
+		return int(wanted)
+	} else {
+		utils.LogError(err, "retrieving lastBlockInBlocksTable data from cache", 0)
+	}
+
+	return -1
 }
 
 func LatestRelaysPageData() *types.RelaysResp {
@@ -1477,7 +1541,7 @@ func getBurnPageData() (*types.BurnPageData, error) {
 	latestEpoch := LatestEpoch()
 	latestBlock := LatestEth1BlockNumber()
 
-	// Retrieve the total amount of burned LYXt
+	// Retrieve the total amount of burned LYX
 	err := db.ReaderDb.Get(&data.TotalBurned, "select sum(value) from chart_series where indicator = 'BURNED_FEES';")
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving total burned amount from chart_series table: %v", err)

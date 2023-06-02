@@ -9,6 +9,13 @@
         ordering: true,
         searching: false,
         stateSave: true,
+        stateSaveCallback: function (settings, data) {
+          data.start = 0
+          localStorage.setItem("DataTables_" + settings.sInstance, JSON.stringify(data))
+        },
+        stateLoadCallback: function (settings) {
+          return JSON.parse(localStorage.getItem("DataTables_" + settings.sInstance))
+        },
         ajax: "/validators/leaderboard/data",
         pagingType: "input",
         language: {
@@ -42,7 +49,7 @@
             targets: 3,
             data: "3",
             render: function (data, type, row, meta) {
-              return (data / 10e8).toFixed(4) + " LYXt"
+              return (data / 10e8).toFixed(4) + " LYX"
             },
             orderable: false,
           },

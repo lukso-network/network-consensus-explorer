@@ -40,9 +40,9 @@
             <div class="col-md-2"><span data-toggle="tooltip" data-placement="top" title="Block Reward paid out to the Proposer as reported by the Relay">MEV Block Reward:</span></div>
             <div class="col-md-10">
               {{ if .IsValidMev }}
-                {{ formatAmount .MevBribe "LYXt" 5 }}
+                {{ formatAmount .MevBribe "LYX" 5 }}
               {{ else }}
-                <s>{{ formatAmount .MevBribe "LYXt" 5 }}</s> <i data-toggle="tooltip" data-placement="top" title="This Reward was flagged as invalid" class="fas fa-question-circle text-warning"></i>
+                <s>{{ formatAmount .MevBribe "LYX" 5 }}</s> <i data-toggle="tooltip" data-placement="top" title="This Reward was flagged as invalid" class="fas fa-question-circle text-warning"></i>
               {{ end }}
             </div>
           </div>
@@ -56,7 +56,7 @@
           <div class="row border-bottom p-3 mx-0">
             <div class="col-md-2"><span data-toggle="tooltip" data-placement="top" title="Transaction rewards from block {{ .Number }}">Tx Reward:</span></div>
             <div class="col-md-10">
-              {{ formatAmount .Reward "LYXt" 5 }}
+              {{ formatAmount .Reward "LYX" 5 }}
             </div>
           </div>
         {{ end }}
@@ -98,9 +98,9 @@
           <div class="flex-grow-1 text-right">
             <div id="unixTs" hidden>{{ .Ts.Unix }}</div>
             <div class="btn-group btn-group-toggle" data-toggle="buttons">
-              <label class="btn btn-light text-dark active btn-sm" onclick="setTs()"> <input type="radio" name="options" id="optionTs" /> Timestamp </label>
-              <label class="btn btn-light text-dark active btn-sm pl-4 pr-4" onclick="setUtc()"> <input type="radio" name="options" id="optionUtc" /> UTC </label>
-              <label class="btn btn-light text-dark btn-sm pl-4 pr-4" onclick="setLocal()"> <input type="radio" name="options" id="optionLocal" checked /> Local </label>
+              <label class="btn btn-light text-dark active btn-sm" onclick="setTs()"> <input type="radio" name="options" id="optionTs" autocomplete="off" /> Timestamp </label>
+              <label class="btn btn-light text-dark active btn-sm pl-4 pr-4" onclick="setUtc()"> <input type="radio" name="options" id="optionUtc" autocomplete="off" /> UTC </label>
+              <label class="btn btn-light text-dark btn-sm pl-4 pr-4" onclick="setLocal()"> <input type="radio" name="options" id="optionLocal" autocomplete="off" checked /> Local </label>
             </div>
           </div>
         </div>
@@ -221,7 +221,7 @@
                 <div class="row p-1">
                   <div class="col-md-2"><span data-toggle="tooltip" data-placement="top" title="Transaction rewards from block {{ .Number }}">Reward:</span></div>
                   <div class="col-md-10 text-monospace text-break">
-                    {{ formatAmount .Reward "LYXt" 5 }}
+                    {{ formatAmount .Reward "LYX" 5 }}
                   </div>
                 </div>
 
@@ -242,7 +242,7 @@
 
                 <div class="row p-1">
                   <div class="col-md-2"><span data-toggle="tooltip" data-placement="top" title="Burned fees">Burned fees:</span></div>
-                  <div class="col-md-10 text-monospace text-break">{{ formatAmount .BurnedFees "LYXt" 5 }}</div>
+                  <div class="col-md-10 text-monospace text-break">{{ formatAmount .BurnedFees "LYX" 5 }}</div>
                 </div>
 
                 <div class="row p-1">

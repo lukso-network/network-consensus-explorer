@@ -87,7 +87,7 @@ func GetEth1Transaction(hash common.Hash) (*types.Eth1TxData, error) {
 		return nil, fmt.Errorf("error retrieving block header data for tx %v: %v", hash, err)
 	}
 	txPageData.BlockNumber = header.Number.Int64()
-	txPageData.Timestamp = header.Time
+	txPageData.Timestamp = time.Unix(int64(header.Time), 0)
 
 	msg, err := tx.AsMessage(geth_types.NewLondonSigner(tx.ChainId()), header.BaseFee)
 	if err != nil {
@@ -167,11 +167,14 @@ func GetEth1Transaction(hash common.Hash) (*types.Eth1TxData, error) {
 				cmEntry.meta, cmEntry.err = db.BigtableClient.GetContractMetadata(log.Address.Bytes())
 				contractMetadataCache[log.Address] = cmEntry
 			}
-
 			if cmEntry.err != nil || cmEntry.meta == nil || cmEntry.meta.ABI == nil {
+				name := ""
+				if len(log.Topics) > 0 {
+					name = db.BigtableClient.GetEventLabel(log.Topics[0][:])
+				}
 				eth1Event := &types.Eth1EventData{
 					Address: log.Address,
-					Name:    "",
+					Name:    name,
 					Topics:  log.Topics,
 					Data:    log.Data,
 				}
@@ -181,7 +184,7 @@ func GetEth1Transaction(hash common.Hash) (*types.Eth1TxData, error) {
 				boundContract := bind.NewBoundContract(*txPageData.To, *cmEntry.meta.ABI, nil, nil, nil)
 
 				for name, event := range cmEntry.meta.ABI.Events {
-					if bytes.Equal(event.ID.Bytes(), log.Topics[0].Bytes()) {
+					if log != nil && len(log.Topics) > 0 && bytes.Equal(event.ID.Bytes(), log.Topics[0].Bytes()) {
 						logData := make(map[string]interface{})
 						err := boundContract.UnpackLogIntoMap(logData, name, *log)
 
@@ -259,7 +262,7 @@ func GetEth1Transaction(hash common.Hash) (*types.Eth1TxData, error) {
 			}
 
 			if amount, found := v.DecodedData["amount"]; found {
-				// amount is a little endian hex denominated in GEwei so we have to decode and reverse it and then convert to LYXt
+				// amount is a little endian hex denominated in GEwei so we have to decode and reverse it and then convert to LYX
 				ba, err := hex.DecodeString(amount.Raw[2:])
 				if err != nil {
 					continue

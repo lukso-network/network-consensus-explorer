@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -279,7 +278,7 @@ func formatAmount(amount *big.Int, unit string, digits int, maxPreCommaDigitsBef
 	// define display unit & digits used per unit max
 	displayUnit := " " + unit
 	var unitDigits int
-	if unit == "ETH" || unit == "Ether" || unit == "LYXt" {
+	if unit == "ETH" || unit == "Ether" || unit == "LYX" {
 		unitDigits = 18
 	} else if unit == "GWei" {
 		unitDigits = 9
@@ -383,7 +382,7 @@ func trimAmount(amount *big.Int, unitDigits int, maxPreCommaDigitsBeforeTrim int
 }
 
 func FormatMethod(method string) template.HTML {
-	return template.HTML(fmt.Sprintf(`<span class="badge badge-light text-truncate mw-100" data-toggle="tooltip" title="%s">%s</span>`, method, method))
+	return template.HTML(fmt.Sprintf(`<span class="badge badge-light text-truncate mw-100" truncate-tooltip="%s">%s</span>`, method, method))
 }
 
 func FormatBlockUsage(gasUsage uint64, gasLimit uint64) template.HTML {
@@ -406,14 +405,6 @@ func FormatDifficulty(number *big.Int) string {
 	f.Quo(f, big.NewFloat(1e12))
 	r, _ := f.Float64()
 	return fmt.Sprintf("%.1f T", r)
-}
-
-func FormatTime(t time.Time) template.HTML {
-	return template.HTML(fmt.Sprintf("<span aria-ethereum-date=\"%v\">%v</span>", t.Unix(), t))
-}
-
-func FormatTimeFromNow(t time.Time) template.HTML {
-	return template.HTML(HumanizeTime(t))
 }
 
 func FormatHashrate(h float64) template.HTML {
