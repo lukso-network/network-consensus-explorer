@@ -548,7 +548,7 @@
 
       calculate() {
         // this calculation is only a rough estimation, it calculates the total
-        // network issuance based ond total staked LYX and online-probability
+        // network issuance based ond total staked LYXt and online-probability
         // of the network.
         this.result.priceChartData = []
         this.result.networkIssuanceChartData = []
@@ -673,15 +673,15 @@
 
         document.getElementById("staking-variable-totalStake-percentage").innerText = `${(this.params.networkStakePercent * 100).toFixed(2)} %`
 
-        document.getElementById("stake1d").innerHTML = `${this.result.incomeChartData[1].y.toFixed(4)} LYX (${symbol}${formatNumberSpacing(this.result.incomeChartData[1].income.toFixed(2))})`
-        document.getElementById("stake7d").innerHTML = `${this.result.incomeChartData[7].y.toFixed(4)} LYX (${symbol}${formatNumberSpacing(this.result.incomeChartData[7].income.toFixed(2))})`
-        document.getElementById("stake31d").innerHTML = `${this.result.incomeChartData[31].y.toFixed(4)} LYX (${symbol}${formatNumberSpacing(this.result.incomeChartData[31].income.toFixed(2))})`
-        document.getElementById("stake365d").innerHTML = `${this.result.incomeChartData[365].y.toFixed(4)} LYX (${symbol}${formatNumberSpacing(this.result.incomeChartData[365].income.toFixed(2))})`
+        document.getElementById("stake1d").innerHTML = `${this.result.incomeChartData[1].y.toFixed(4)} LYXt (${symbol}${formatNumberSpacing(this.result.incomeChartData[1].income.toFixed(2))})`
+        document.getElementById("stake7d").innerHTML = `${this.result.incomeChartData[7].y.toFixed(4)} LYXt (${symbol}${formatNumberSpacing(this.result.incomeChartData[7].income.toFixed(2))})`
+        document.getElementById("stake31d").innerHTML = `${this.result.incomeChartData[31].y.toFixed(4)} LYXt (${symbol}${formatNumberSpacing(this.result.incomeChartData[31].income.toFixed(2))})`
+        document.getElementById("stake365d").innerHTML = `${this.result.incomeChartData[365].y.toFixed(4)} LYXt (${symbol}${formatNumberSpacing(this.result.incomeChartData[365].income.toFixed(2))})`
 
-        document.getElementById("stakeChange1d").innerHTML = `${(this.result.incomeChartData[1].y - this.params.stake / 1e9).toFixed(4)} LYX (${symbol}${formatNumberSpacing((this.result.incomeChartData[1].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
-        document.getElementById("stakeChange7d").innerHTML = `${(this.result.incomeChartData[7].y - this.params.stake / 1e9).toFixed(4)} LYX (${symbol}${formatNumberSpacing((this.result.incomeChartData[7].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
-        document.getElementById("stakeChange31d").innerHTML = `${(this.result.incomeChartData[31].y - this.params.stake / 1e9).toFixed(4)} LYX (${symbol}${formatNumberSpacing((this.result.incomeChartData[31].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
-        document.getElementById("stakeChange365d").innerHTML = `${(this.result.incomeChartData[365].y - this.params.stake / 1e9).toFixed(4)} LYX (${symbol}${formatNumberSpacing((this.result.incomeChartData[365].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange1d").innerHTML = `${(this.result.incomeChartData[1].y - this.params.stake / 1e9).toFixed(4)} LYXt (${symbol}${formatNumberSpacing((this.result.incomeChartData[1].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange7d").innerHTML = `${(this.result.incomeChartData[7].y - this.params.stake / 1e9).toFixed(4)} LYXt (${symbol}${formatNumberSpacing((this.result.incomeChartData[7].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange31d").innerHTML = `${(this.result.incomeChartData[31].y - this.params.stake / 1e9).toFixed(4)} LYXt (${symbol}${formatNumberSpacing((this.result.incomeChartData[31].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
+        document.getElementById("stakeChange365d").innerHTML = `${(this.result.incomeChartData[365].y - this.params.stake / 1e9).toFixed(4)} LYXt (${symbol}${formatNumberSpacing((this.result.incomeChartData[365].income - (this.params.stake / 1e9) * this.params.price).toFixed(2))})`
 
         document.getElementById("return1d").innerHTML = `${symbol}${formatNumberSpacing(this.result.profitDollarChartData[1][1].toFixed(2))}`
         document.getElementById("return7d").innerHTML = `${symbol}${formatNumberSpacing(this.result.profitDollarChartData[7][1].toFixed(2))}`
@@ -711,7 +711,7 @@
           yAxis: [
             {
               title: {
-                text: "Stake in LYX",
+                text: "Stake in LYXt",
               },
               offset: 30,
             },
@@ -727,7 +727,7 @@
           data: this.result.incomeChartData,
           tooltip: {
             pointFormatter: function () {
-              return `<span style="color:${this.color}">●</span> ${this.series.name} <b>${this.y.toFixed(3)} LYX </b>(${symbol}${formatNumberSpacing(this.options.income.toFixed(2))})<br>`
+              return `<span style="color:${this.color}">●</span> ${this.series.name} <b>${this.y.toFixed(3)} LYXt </b>(${symbol}${formatNumberSpacing(this.options.income.toFixed(2))})<br>`
             },
           },
         })
@@ -883,7 +883,7 @@
       <div class="row my-3">
         <div class="col-xl-4 col-md-5 col-sm-12 py-3 variables">
           <div class="stake">
-            <h5 class="mb-0">Your Ethereum Stake <span id="yourStake-currency">LYX</span> <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="This value represents the amount of LYX you want to use for stacking. If you are not staking on a pool it must be a multiple of 32, since validators can only join the network with a minimum of 32 ETH."></i></h5>
+            <h5 class="mb-0">Your Ethereum Stake <span id="yourStake-currency">LYXt</span> <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="This value represents the amount of LYXt you want to use for stacking. If you are not staking on a pool it must be a multiple of 32, since validators can only join the network with a minimum of 32 ETH."></i></h5>
             <div class="justify-content-between d-flex p-3 pb-0 align-content-center">
               <input id="staking-variable-yourStake" class="staking-variable form-control col-6" type="text" value="32" />
               <h5 class="mb-0 mt-1" id="validator-count col-6"><span id="validator-count">0</span> <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="The total number of validators that can be added to the network with your stake. A minimum of 32 ethereum is needed for a validator to participate in the network. Ignore this value when you are staking over a pool."></i></h5>
@@ -969,8 +969,8 @@
                   <div class="setting">
                     <div class="d-flex justify-content-between">
                       <h6 width="50%">
-                        Total staked LYX <span id="totalStake-currency">LYX</span>
-                        <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="Total staked LYX is the sum of effective balances of all active validators attesting in the network."></i>
+                        Total staked LYXt <span id="totalStake-currency">LYXt</span>
+                        <i class="fas fa-info-circle fa-sm" data-toggle="tooltip" title="Total staked LYXt is the sum of effective balances of all active validators attesting in the network."></i>
                       </h6>
                       <span id="staking-variable-totalStake-percentage"></span>
                     </div>

@@ -634,10 +634,10 @@ function addCommas(number) {
 
 function getIncomeChartValueString(value, currency, ethPrice) {
   if (this.currency === "ETH") {
-    return `${value.toFixed(5)} LYX`
+    return `${value.toFixed(5)} LYXt`
   }
 
-  return `${(value / ethPrice).toFixed(5)} LYX (${value.toFixed(2)} ${currency})`
+  return `${(value / ethPrice).toFixed(5)} LYXt (${value.toFixed(2)} ${currency})`
 }
 
 $("[data-tooltip-date=true]").each(function (item) {

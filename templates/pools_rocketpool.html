@@ -43,7 +43,7 @@
         {
           targets: 4,
           render: function (data, type, row, meta) {
-            return `${data} LYX`
+            return `${data} LYXt`
           },
         },
         {
@@ -172,9 +172,9 @@
           targets: 6,
           render: function (data, type, row, meta) {
             if (parseInt(data) !== 0) {
-              return `${(parseInt(data) / 10 ** 18).toFixed(0)} LYX`
+              return `${(parseInt(data) / 10 ** 18).toFixed(0)} LYXt`
             }
-            return `${data} LYX`
+            return `${data} LYXt`
           },
         },
       ],

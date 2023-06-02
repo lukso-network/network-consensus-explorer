@@ -183,7 +183,7 @@ function showTable(data) {
       $("#form-div").removeClass("d-flex").addClass("d-none")
       $("#table-div").removeClass("d-none")
       $("#subscriptions-div").addClass("d-none")
-      $("#total-income-eth-span").html("LYX " + data.total_eth)
+      $("#total-income-eth-span").html("LYXt " + data.total_eth)
       $("#total-income-currency-span").html(data.total_currency)
       $("#totals-div").removeClass("d-none")
       $(".dt-button").addClass("ml-2 ")

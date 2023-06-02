@@ -27,7 +27,7 @@ type EthPrice struct {
 	} `json:"ethereum"`
 }
 
-var availableCurrencies = []string{"LYX", "ETH", "USD", "EUR", "GBP", "CNY", "CAD", "AUD", "JPY"}
+var availableCurrencies = []string{"LYXt", "ETH", "USD", "EUR", "GBP", "CNY", "CAD", "AUD", "JPY"}
 var ethPrice = new(EthPrice)
 var ethPriceMux = &sync.RWMutex{}
 
@@ -263,8 +263,8 @@ func GetAvailableCurrencies() []string {
 
 func GetCurrencyLabel(currency string) string {
 	switch currency {
-	case "LYX":
-		return "LYX"
+	case "LYXt":
+		return "LYXt"
 	case "USD":
 		return "United States Dollar"
 	case "EUR":

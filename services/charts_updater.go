@@ -342,16 +342,16 @@ func stakedEtherChartData() (*types.GenericChartData, error) {
 	}
 
 	chartData := &types.GenericChartData{
-		Title:                           "Staked LYX",
-		Subtitle:                        "History of daily staked LYX, which is the sum of all Effective Balances.",
+		Title:                           "Staked LYXt",
+		Subtitle:                        "History of daily staked LYXt, which is the sum of all Effective Balances.",
 		XAxisTitle:                      "",
-		YAxisTitle:                      "LYX",
+		YAxisTitle:                      "LYXt",
 		StackingMode:                    "false",
 		Type:                            "column",
 		ColumnDataGroupingApproximation: "close",
 		Series: []*types.GenericChartDataSeries{
 			{
-				Name: "Staked LYX",
+				Name: "Staked LYXt",
 				Data: dailyStakedEther,
 			},
 		},
@@ -389,13 +389,13 @@ func averageBalanceChartData() (*types.GenericChartData, error) {
 		Title:                           "Validator Balance",
 		Subtitle:                        "Average Daily Validator Balance.",
 		XAxisTitle:                      "",
-		YAxisTitle:                      "LYX",
+		YAxisTitle:                      "LYXt",
 		StackingMode:                    "false",
 		Type:                            "column",
 		ColumnDataGroupingApproximation: "average",
 		Series: []*types.GenericChartDataSeries{
 			{
-				Name: "Average Balance [LYX]",
+				Name: "Average Balance [LYXt]",
 				Data: dailyAverageBalance,
 			},
 		},
@@ -554,15 +554,15 @@ func historicPoolPerformanceData() (*types.GenericChartData, error) {
 		// generate eth store series datapoints
 		for _, ethStoreDay := range performanceDays {
 			timestamp = float64(utils.DayToTime(int64(ethStoreDay.Day)).Unix() * 1000)
-			poolSeriesData["LYX.STORE"] = append(poolSeriesData["LYX.STORE"], [2]float64{
+			poolSeriesData["LYXt.STORE"] = append(poolSeriesData["LYXt.STORE"], [2]float64{
 				timestamp,
 				ethStoreDay.APR.InexactFloat64() * 100,
 			})
 		}
 		// create eth store series
 		ethStoreSeries := types.GenericChartDataSeries{
-			Name:  "LYX.STORE®",
-			Data:  poolSeriesData["LYX.STORE"],
+			Name:  "LYXt.STORE®",
+			Data:  poolSeriesData["LYXt.STORE"],
 			Color: "#ed1c24",
 		}
 		chartSeries = append([]*types.GenericChartDataSeries{&ethStoreSeries}, chartSeries...)
@@ -571,7 +571,7 @@ func historicPoolPerformanceData() (*types.GenericChartData, error) {
 	//create chart struct, hypertext color is hardcoded into subtitle text
 	chartData := &types.GenericChartData{
 		Title:         "Historical Pool Performance",
-		Subtitle:      "Uses a neutral & verifiable formula <a href=\"https://github.com/lukso-network/lyx.store\">LYX.STORE®</a><sup>1</sup> to measure pool performance for consensus & execution rewards.",
+		Subtitle:      "Uses a neutral & verifiable formula <a href=\"https://github.com/lukso-network/lyx.store\">LYXt.STORE®</a><sup>1</sup> to measure pool performance for consensus & execution rewards.",
 		XAxisTitle:    "",
 		YAxisTitle:    "APR [%] (Logarithmic)",
 		StackingMode:  "false",
@@ -615,7 +615,7 @@ func stakeEffectivenessChartData() (*types.GenericChartData, error) {
 
 	chartData := &types.GenericChartData{
 		Title:        "Stake Effectiveness",
-		Subtitle:     "Stake Effectiveness measures the relation between the sum of all effective balances and the sum of all balances. 100% Stake Effectiveness means that 100% of the locked LYX is used for staking.",
+		Subtitle:     "Stake Effectiveness measures the relation between the sum of all effective balances and the sum of all balances. 100% Stake Effectiveness means that 100% of the locked LYXt is used for staking.",
 		XAxisTitle:   "",
 		YAxisTitle:   "Stake Effectiveness [%]",
 		StackingMode: "false",
@@ -667,7 +667,7 @@ func balanceDistributionChartData() (*types.GenericChartData, error) {
 		Subtitle:             fmt.Sprintf("Histogram of Balances at epoch %d.", epoch),
 		XAxisTitle:           "Balance",
 		YAxisTitle:           "# of Validators",
-		XAxisLabelsFormatter: `function(){ return this.value+'LYX' }`,
+		XAxisLabelsFormatter: `function(){ return this.value+'LYXt' }`,
 		StackingMode:         "false",
 		Type:                 "column",
 		Series: []*types.GenericChartDataSeries{
@@ -717,7 +717,7 @@ func effectiveBalanceDistributionChartData() (*types.GenericChartData, error) {
 		Subtitle:             fmt.Sprintf("Histogram of Effective Balances at epoch %d.", epoch),
 		XAxisTitle:           "Effective Balance",
 		YAxisTitle:           "# of Validators",
-		XAxisLabelsFormatter: `function(){ return this.value+'LYX' }`,
+		XAxisLabelsFormatter: `function(){ return this.value+'LYXt' }`,
 		StackingMode:         "false",
 		Type:                 "column",
 		Series: []*types.GenericChartDataSeries{
@@ -782,8 +782,8 @@ func performanceDistribution365dChartData() (*types.GenericChartData, error) {
 		Subtitle:      fmt.Sprintf("Histogram of income-performances of the last 365 days at epoch %d.", LatestEpoch()),
 		XAxisTitle:    "Income",
 		XAxisLabelsFormatter: `function(){
-  if (this.value < 0) return '<span style="color:var(--danger)">'+this.value+'LYX<span>'
-  return '<span style="color:var(--success)">'+this.value+'LYX<span>'
+  if (this.value < 0) return '<span style="color:var(--danger)">'+this.value+'LYXt<span>'
+  return '<span style="color:var(--success)">'+this.value+'LYXt<span>'
 }
 `,
 		YAxisTitle:   "# of Validators",
@@ -867,9 +867,9 @@ func depositsChartData() (*types.GenericChartData, error) {
 
 	chartData := &types.GenericChartData{
 		Title:        "Deposits",
-		Subtitle:     "Daily Amount of deposited LYX.",
+		Subtitle:     "Daily Amount of deposited LYXt.",
 		XAxisTitle:   "Income",
-		YAxisTitle:   "Deposited LYX",
+		YAxisTitle:   "Deposited LYXt",
 		StackingMode: "normal",
 		Type:         "column",
 		Series: []*types.GenericChartDataSeries{
@@ -933,9 +933,9 @@ func withdrawalsChartData() (*types.GenericChartData, error) {
 
 	chartData := &types.GenericChartData{
 		Title:        "Withdrawals",
-		Subtitle:     "Daily Amount of withdrawals in LYX.",
+		Subtitle:     "Daily Amount of withdrawals in LYXt.",
 		XAxisTitle:   "",
-		YAxisTitle:   "Withdrawals LYX",
+		YAxisTitle:   "Withdrawals LYXt",
 		StackingMode: "normal",
 		Type:         "column",
 		Series: []*types.GenericChartDataSeries{
@@ -1099,9 +1099,9 @@ func BurnedFeesChartData() (*types.GenericChartData, error) {
 
 	chartData := &types.GenericChartData{
 		Title:                           "Burned Fees",
-		Subtitle:                        "Evolution of the total number of LYX burned with EIP 1559",
+		Subtitle:                        "Evolution of the total number of LYXt burned with EIP 1559",
 		XAxisTitle:                      "",
-		YAxisTitle:                      "Burned Fees [LYX]",
+		YAxisTitle:                      "Burned Fees [LYXt]",
 		StackingMode:                    "false",
 		Type:                            "area",
 		ColumnDataGroupingApproximation: "average",
@@ -1318,10 +1318,10 @@ func TotalEmissionChartData() (*types.GenericChartData, error) {
 
 	chartData := &types.GenericChartData{
 		// IsNormalChart: true,
-		Title:                           "Total LYX Supply",
-		Subtitle:                        "Evolution of the total LYX supply",
+		Title:                           "Total LYXt Supply",
+		Subtitle:                        "Evolution of the total LYXt supply",
 		XAxisTitle:                      "",
-		YAxisTitle:                      "Total Supply [LYX]",
+		YAxisTitle:                      "Total Supply [LYXt]",
 		StackingMode:                    "false",
 		Type:                            "area",
 		ColumnDataGroupingApproximation: "average",

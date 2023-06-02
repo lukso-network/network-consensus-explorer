@@ -90,7 +90,7 @@ func GetValidatorHist(validatorArr []uint64, currency string, start uint64, end 
 		data[i] = []string{
 			key,
 			addCommas(float64(item.EndBalance.Int64)/1e9, "%.5f"),                           // end of day balance
-			addCommas(iETH, "%.5f"),                                                         // income of day LYX
+			addCommas(iETH, "%.5f"),                                                         // income of day LYXt
 			fmt.Sprintf("%s %s", strings.ToUpper(currency), addCommas(prices[key], "%.2f")), //price will default to 0 if key does not exist
 			fmt.Sprintf("%s %s", strings.ToUpper(currency), addCommas(iCur, "%.2f")),        // income of day Currency
 		}

@@ -161,7 +161,7 @@
     <div class="explain-container my-3">
       <div style="text-align: center;">
         <div>
-          <h1>LYX.STORE®</h1>
+          <h1>LYXt.STORE®</h1>
           <h3 class="subline">The Transparent Ethereum Staking Reward Reference Rate<sup>1</sup></h3>
         </div>
       </div>
@@ -187,7 +187,7 @@
                 </h1>
               </div>
               <div class="h5 text-muted feature-text-container">
-                <span class="feature-text"> LYX.STORE® </span>
+                <span class="feature-text"> LYXt.STORE® </span>
                 <span class="feature-text" style="opacity: 0.75; font-size: 0.82em;">based on last reward day</span>
               </div>
             </div>
@@ -221,7 +221,7 @@
                 </svg>
               </div>
               <div class="h5 text-muted feature-text-container" style="padding-top: 10px;">
-                <span class="feature-text"> LYX.STORE® is transparent, fair and easily auditable </span>
+                <span class="feature-text"> LYXt.STORE® is transparent, fair and easily auditable </span>
               </div>
             </div>
           </div>
@@ -229,14 +229,14 @@
       </section>
 
       <section class="my-5">
-        <h1 class="title-head">LYX.STORE® Explained</h1>
+        <h1 class="title-head">LYXt.STORE® Explained</h1>
 
-        <button type="button" class="collapsible">What is LYX.STORE®?</button>
+        <button type="button" class="collapsible">What is LYXt.STORE®?</button>
         <div class="content">
-          <p>LYX.STORE® (LYX <strong>St</strong>aking <strong>O</strong>ffered <strong>R</strong>at<strong>e</strong>) is a transparent LYX staking reward reference rate. It represents the average financial return validators on the LUKSO network have achieved in a 24-hour period as published on <a href="/ethstore">explorer.consensus.lukso.network</a>.</p>
+          <p>LYXt.STORE® (LYXt <strong>St</strong>aking <strong>O</strong>ffered <strong>R</strong>at<strong>e</strong>) is a transparent LYXt staking reward reference rate. It represents the average financial return validators on the LUKSO network have achieved in a 24-hour period as published on <a href="/ethstore">explorer.consensus.lukso.network</a>.</p>
         </div>
 
-        <button type="button" class="collapsible">How are active validators counted by LYX.STORE®?</button>
+        <button type="button" class="collapsible">How are active validators counted by LYXt.STORE®?</button>
         <div class="content">
           <p>All validators that stayed in the active state during the entire reward day are counted. New validators joining or exiting mid day are excluded.</p>
         </div>
@@ -246,7 +246,7 @@
           <p>Each reward day starts at 12:00:23 UTC and lasts for 24 hours (or exactly 225 beaconchain epochs).</p>
         </div>
 
-        <button type="button" class="collapsible">How are total rewards calculated in LYX.STORE®?</button>
+        <button type="button" class="collapsible">How are total rewards calculated in LYXt.STORE®?</button>
         <div class="content">
           <p>Total staking rewards consists of consensus rewards and transaction fees:</p>
           <ol>
@@ -256,7 +256,7 @@
           <p>Total staking rewards equals the sum of consensus rewards and transaction fees.</p>
         </div>
 
-        <button type="button" class="collapsible">How can I reproduce the LYX.STORE® calculation on my own?</button>
+        <button type="button" class="collapsible">How can I reproduce the LYXt.STORE® calculation on my own?</button>
         <div class="content">
           <div class="table-responsive">
             <table class="table">
@@ -288,7 +288,7 @@
                   <td>Sum of all effective balances at epoch SE of all validators in VS</td>
                 </tr>
                 <tr>
-                  <td>LYX.STORE®:</td>
+                  <td>LYXt.STORE®:</td>
                   <td>(RS/EB)*365</td>
                 </tr>
               </tbody>
@@ -323,14 +323,14 @@
                 </tr>
                 <tr>
                   <td>Sum rewards (RS):</td>
-                  <td>{{ formatThousandsFancy .Data.YesterdayRewards }} LYX</td>
+                  <td>{{ formatThousandsFancy .Data.YesterdayRewards }} LYXt</td>
                 </tr>
                 <tr>
                   <td>Sum effective balances (EB):</td>
-                  <td>{{ formatThousandsFancy .Data.YesterdayEffectiveBalance }} LYX</td>
+                  <td>{{ formatThousandsFancy .Data.YesterdayEffectiveBalance }} LYXt</td>
                 </tr>
                 <tr>
-                  <td>LYX.STORE®:</td>
+                  <td>LYXt.STORE®:</td>
                   <td>{{ .Data.ProjectedAPR }} % = ({{ formatThousandsFancy .Data.YesterdayRewards }} / ({{ formatThousandsFancy .Data.YesterdayEffectiveBalance }})) * 365</td>
                 </tr>
               </tbody>
@@ -338,9 +338,9 @@
           </div>
         </div>
 
-        <button type="button" class="collapsible">Is the LYX.STORE® code Open-Source?</button>
+        <button type="button" class="collapsible">Is the LYXt.STORE® code Open-Source?</button>
         <div class="content">
-          <p>Yes, you can run the calculations yourself with our open source LYX.STORE® tool and verify the integrity of the LYX.STORE® listed here. Check out <a href="https://github.com/lukso-network/lyx.store/" target="_blank">LYX.STORE® on Github</a>.</p>
+          <p>Yes, you can run the calculations yourself with our open source LYXt.STORE® tool and verify the integrity of the LYXt.STORE® listed here. Check out <a href="https://github.com/lukso-network/lyx.store/" target="_blank">LYXt.STORE® on Github</a>.</p>
         </div>
       </section>
     </div>
@@ -443,11 +443,11 @@
 
 				for (var i = 0; i < this.points.length; i++) {
 					if (this.points[i].series.name == "Total Staking Rewards") {
-						add += `<span style="color:${this.points[i].series.color};display: inline-block; width: 200px;">${this.points[i].series.name}: </span><b>${Highcharts.numberFormat(this.points[i].y, 6)} LYX</b><br/>`
-					} else if (this.points[i].series.name == "LYX.STORE") {
+						add += `<span style="color:${this.points[i].series.color};display: inline-block; width: 200px;">${this.points[i].series.name}: </span><b>${Highcharts.numberFormat(this.points[i].y, 6)} LYXt</b><br/>`
+					} else if (this.points[i].series.name == "LYXt.STORE") {
 						add += `<span style="color: ${this.points[i].series.color}; display: inline-block; width: 200px;">${this.points[i].series.name}: </span><b>${this.points[i].y.toFixed(3)} % p.a.</b><br/>`
 					} else {
-						add += `<span style="color: ${this.points[i].series.color}; display: inline-block; width: 200px;">${this.points[i].series.name}: </span><b>${Highcharts.numberFormat(this.points[i].y, 0)} LYX</b><br/>`
+						add += `<span style="color: ${this.points[i].series.color}; display: inline-block; width: 200px;">${this.points[i].series.name}: </span><b>${Highcharts.numberFormat(this.points[i].y, 0)} LYXt</b><br/>`
 					}
 				}
 				return `${new Intl.DateTimeFormat(navigator.language || 'en-US', { dateStyle: 'long' }).format(new Date(this.x))}<br/>` + add
@@ -455,7 +455,7 @@
 		},
 		yAxis: [{
 			title: {
-				text: 'Total Staking Rewards (LYX)'
+				text: 'Total Staking Rewards (LYXt)'
 			},
 			opposite: false,
 			labels: {
@@ -466,7 +466,7 @@
 		},
 		{
 			title: {
-				text: 'LYX.STORE® (% p.a.)'
+				text: 'LYXt.STORE® (% p.a.)'
 			},
 			opposite: false,
 			labels: {
@@ -486,7 +486,7 @@
 			labels: {
 				enabled: false,
 				formatter: function () {
-					return (this.value / 1000000).toFixed(0) + "M LYX"
+					return (this.value / 1000000).toFixed(0) + "M LYXt"
 				},
 			},
 			opposite: true,
@@ -514,7 +514,7 @@
 				yAxis: 2
 			},
 			{
-				name: 'LYX.STORE®',
+				name: 'LYXt.STORE®',
 				data: {{ .APRs}},
 				color: 'var(--statistics-orange)',
 				negativeColor: '#384a32',

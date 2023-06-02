@@ -114,7 +114,7 @@ func FormatBalanceSql(balanceInt sql.NullInt64, currency string) template.HTML {
 }
 
 func FormatBalanceGwei(balance *int64, currency string) template.HTML {
-	if currency == "ETH" || currency == "LYX" {
+	if currency == "ETH" || currency == "LYXt" {
 		if balance == nil {
 			return template.HTML("<span> 0.00000 " + currency + "</span>")
 		} else if *balance == 0 {
@@ -174,7 +174,7 @@ func FormatBalanceChangeFormated(balance *int64, currencyName string, details *i
 		income += fmt.Sprintf("Total: %s GWei", FormatAddCommasFormated(float64(details.TotalClRewards()), 0))
 	}
 
-	if currencyName == "ETH" || currencyName == "LYX" {
+	if currencyName == "ETH" || currencyName == "LYXt" {
 		if balance == nil || *balance == 0 {
 			return template.HTML("<span class=\"float-right\">0 GWei</span>")
 		}
@@ -204,7 +204,7 @@ func FormatBalanceChangeFormated(balance *int64, currencyName string, details *i
 // FormatBalanceChange will return a string for a balance change
 func FormatBalanceChange(balance *int64, currency string) template.HTML {
 	balanceF := float64(*balance) / float64(1e9)
-	if currency == "ETH" || currency == "LYX" {
+	if currency == "ETH" || currency == "LYXt" {
 		if balance == nil || *balance == 0 {
 			return template.HTML("<span> 0 " + currency + "</span>")
 		}
@@ -336,7 +336,7 @@ func FormatBlockStatusShort(status uint64) template.HTML {
 
 // FormatBlockStatusShort will return an html status for a block.
 func FormatWithdrawalShort(slot uint64, amount uint64) template.HTML {
-	return template.HTML(fmt.Sprintf("<span title=\"Withdrawal processed in epoch %v during slot %v for %v\" data-toggle=\"tooltip\" class=\"mx-1 badge badge-pill bg-success text-white\" style=\"font-size: 12px; font-weight: 500;\"><i class=\"fas fa-money-bill\"></i></span>", EpochOfSlot(slot), slot, FormatCurrentBalance(amount, "LYX")))
+	return template.HTML(fmt.Sprintf("<span title=\"Withdrawal processed in epoch %v during slot %v for %v\" data-toggle=\"tooltip\" class=\"mx-1 badge badge-pill bg-success text-white\" style=\"font-size: 12px; font-weight: 500;\"><i class=\"fas fa-money-bill\"></i></span>", EpochOfSlot(slot), slot, FormatCurrentBalance(amount, "LYXt")))
 }
 
 func FormatTransactionType(txnType uint8) string {
@@ -354,7 +354,7 @@ func FormatTransactionType(txnType uint8) string {
 
 // FormatCurrentBalance will return the current balance formated as string with 9 digits after the comma (1 gwei = 1e9 eth)
 func FormatCurrentBalance(balanceInt uint64, currency string) template.HTML {
-	if currency == "ETH" || currency == "LYX" {
+	if currency == "ETH" || currency == "LYXt" {
 		exchangeRate := ExchangeRateForCurrency(currency)
 		balance := float64(balanceInt) / float64(1e9)
 		return template.HTML(fmt.Sprintf("%.5f %v", balance*exchangeRate, currency))
@@ -440,7 +440,7 @@ func FormatGlobalParticipationRate(e uint64, r float64, currency string) templat
 func FormatEtherValue(symbol string, ethPrice *big.Float, currentPrice template.HTML) template.HTML {
 	p := message.NewPrinter(language.English)
 	ep, _ := ethPrice.Float64()
-	return template.HTML(p.Sprintf(`<span>%s %.2f</span> <span class="text-muted">@ %s/LYX</span>`, symbol, ep, currentPrice))
+	return template.HTML(p.Sprintf(`<span>%s %.2f</span> <span class="text-muted">@ %s/LYXt</span>`, symbol, ep, currentPrice))
 }
 
 // FormatGraffiti will return the graffiti formated as html
@@ -730,7 +730,7 @@ func exchangeAndTrim(currency string, amount int64) string {
 	decimals := 5
 	preCommaDecimals := 1
 
-	if currency != "ETH" && currency != "LYX" {
+	if currency != "ETH" && currency != "LYXt" {
 		decimals = 2
 		preCommaDecimals = 4
 	}
@@ -1089,7 +1089,7 @@ func FormatRPL(num string) string {
 
 func FormatETH(num string) string {
 	floatNum, _ := strconv.ParseFloat(num, 64)
-	return fmt.Sprintf("%.4f", floatNum/math.Pow10(18)) + " LYX"
+	return fmt.Sprintf("%.4f", floatNum/math.Pow10(18)) + " LYXt"
 }
 
 func FormatFloat(num float64, precision int) string {
@@ -1119,7 +1119,7 @@ func FormatBlockReward(blockNumber int64) template.HTML {
 		reward = big.NewInt(2e+18)
 	}
 
-	return FormatAmount(reward, "LYX", 5)
+	return FormatAmount(reward, "LYXt", 5)
 }
 
 func FormatTokenBalance(balance *types.Eth1AddressBalance) template.HTML {
@@ -1176,7 +1176,7 @@ func FormatAddressEthBalance(balance *types.Eth1AddressBalance) template.HTML {
 	p := message.NewPrinter(language.English)
 	return template.HTML(p.Sprintf(fmt.Sprintf(`
 		<div class="d-flex align-items-center">
-			<span class="token-holdings">%%.%df LYX</span>
+			<span class="token-holdings">%%.%df LYXt</span>
 		</div>`, e.Int64()), balEth))
 }
 

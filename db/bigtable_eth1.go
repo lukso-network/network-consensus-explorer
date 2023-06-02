@@ -1831,7 +1831,7 @@ func (bigtable *Bigtable) GetAddressTransactionsTableData(address []byte, search
 			from,
 			utils.FormatInOutSelf(address, t.From, t.To),
 			to,
-			utils.FormatAmount(new(big.Int).SetBytes(t.Value), "LYX", 6),
+			utils.FormatAmount(new(big.Int).SetBytes(t.Value), "LYXt", 6),
 		}
 	}
 
@@ -1910,7 +1910,7 @@ func (bigtable *Bigtable) GetAddressBlocksMinedTableData(address string, search 
 			utils.FormatBlockNumber(b.Number),
 			utils.FormatTimestamp(b.Time.AsTime().Unix()),
 			utils.FormatBlockUsage(b.GasUsed, b.GasLimit),
-			utils.FormatAmount(reward, "LYX", 6),
+			utils.FormatAmount(reward, "LYXt", 6),
 		}
 	}
 
@@ -1987,7 +1987,7 @@ func (bigtable *Bigtable) GetAddressUnclesMinedTableData(address string, search 
 			utils.FormatBlockNumber(u.Number),
 			utils.FormatTimestamp(u.Time.AsTime().Unix()),
 			utils.FormatDifficulty(new(big.Int).SetBytes(u.Difficulty)),
-			utils.FormatAmount(new(big.Int).SetBytes(u.Reward), "LYX", 6),
+			utils.FormatAmount(new(big.Int).SetBytes(u.Reward), "LYXt", 6),
 		}
 	}
 
@@ -2088,7 +2088,7 @@ func (bigtable *Bigtable) GetAddressInternalTableData(address []byte, search str
 			from,
 			utils.FormatInOutSelf(address, t.From, t.To),
 			to,
-			utils.FormatAmount(new(big.Int).SetBytes(t.Value), "LYX", 6),
+			utils.FormatAmount(new(big.Int).SetBytes(t.Value), "LYXt", 6),
 			t.Type,
 		}
 	}
@@ -2170,7 +2170,7 @@ func (bigtable *Bigtable) GetInternalTransfersForTransaction(transaction []byte,
 		data[i] = types.Transfer{
 			From:   from,
 			To:     to,
-			Amount: utils.FormatBytesAmount(t.Value, "LYX", 8),
+			Amount: utils.FormatBytesAmount(t.Value, "LYXt", 8),
 		}
 	}
 	return data, nil
@@ -2769,7 +2769,7 @@ func (bigtable *Bigtable) GetERC20MetadataForAddress(address []byte) (*types.ERC
 	if len(address) == 1 {
 		return &types.ERC20Metadata{
 			Decimals:    big.NewInt(18).Bytes(),
-			Symbol:      "LYX",
+			Symbol:      "LYXt",
 			TotalSupply: []byte{},
 		}, nil
 	}

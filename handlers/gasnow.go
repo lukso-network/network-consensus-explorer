@@ -78,7 +78,7 @@ func GasNowData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	currency := GetCurrency(r)
-	if currency == "ETH" || currency == "LYX" {
+	if currency == "ETH" || currency == "LYXt" {
 		currency = "USD"
 	}
 	gasnowData.Data.Price = price.GetEthPrice(currency)
