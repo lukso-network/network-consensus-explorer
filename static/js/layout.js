@@ -632,12 +632,28 @@ function addCommas(number) {
     .replace(/\B(?=(\d{3})+(?!\d))/g, "<span class='thousands-separator'></span>")
 }
 
+function trimPrice(value, decimals = 5) {
+  if (value === undefined || value === null) {
+    return ""
+  }
+  let parts = value.toString().split(".")
+  return parts.length > 1 ? `${parts[0]}.${parts[1].substring(0, decimals)}` : parts[0]
+}
+
+function trimToken(value) {
+  return trimPrice(value)
+}
+
+function trimCurrency(value) {
+  return trimPrice(value, 2)
+}
+
 function getIncomeChartValueString(value, currency, ethPrice) {
   if (this.currency === "ETH") {
-    return `${value.toFixed(5)} LYX`
+    return `${trimToken(value)} LYX`
   }
 
-  return `${(value / ethPrice).toFixed(5)} LYX (${value.toFixed(2)} ${currency})`
+  return `${trimToken(value / ethPrice)} LYX (${trimCurrency(value)} ${currency})`
 }
 
 $("[data-tooltip-date=true]").each(function (item) {
