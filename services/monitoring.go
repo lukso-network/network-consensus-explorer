@@ -245,7 +245,7 @@ func startServicesMonitoringService() {
 		"latestBlockUpdater":        time.Minute * 15,
 		"notification-collector":    time.Minute * 15,
 		"relaysUpdater":             time.Minute * 15,
-		"ethstoreExporter":          time.Minute * 30,
+		"ethstoreExporter":          time.Minute * 60,
 		"statsUpdater":              time.Minute * 30,
 		"poolsUpdater":              time.Minute * 30,
 		"epochExporter":             time.Minute * 15,
@@ -258,8 +258,10 @@ func startServicesMonitoringService() {
 		for _, service := range utils.Config.ServiceMonitoringConfigurations {
 			if service.Duration == 0 {
 				delete(servicesToCheck, service.Name)
+				logger.Infof("Removing %v from monitoring service", service.Name)
 			} else {
 				servicesToCheck[service.Name] = service.Duration
+				logger.Infof("Change timeout for %v to %v", service.Name, service.Duration)
 			}
 		}
 	}
