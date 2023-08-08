@@ -569,6 +569,8 @@ func main() {
 
 			router.HandleFunc("/monitoring/{module}", handlers.Monitoring).Methods("GET", "OPTIONS")
 
+			router.HandleFunc("/lukso/total-supply", handlers.LuksoTotalSupply).Methods("GET")
+
 			// router.HandleFunc("/user/validators", handlers.UserValidators).Methods("GET")
 
 			signUpRouter := router.PathPrefix("/").Subrouter()
