@@ -7,23 +7,28 @@ import (
 )
 
 type luksoTotalSupplyResponse struct {
-	TotalSupply uint64 `json:"total_supply"`
+	CirculatingSupply uint64 `json:"circulating_supply"`
+	TotalSupply       uint64 `json:"total_supply"`
 }
 
 func LuksoTotalSupply(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
+	// From https://github.com/lukso-network/network-configs/blob/main/mainnet/shared/genesis.json
 	genesisTotalSupply := uint64(42000000)
+	genesisFoundationSupply := uint64(11143518)
 
 	totalAmountWithdrawn, _, err := db.GetTotalAmountWithdrawn()
 	if err != nil {
 		logger.WithError(err).Error("error getting total amount withdrawn from db")
 	}
 
+	circulatingSupply := (genesisTotalSupply - genesisFoundationSupply) + totalAmountWithdrawn
 	totalSupply := genesisTotalSupply + totalAmountWithdrawn
 
 	data := luksoTotalSupplyResponse{
-		TotalSupply: totalSupply,
+		CirculatingSupply: circulatingSupply,
+		TotalSupply:       totalSupply,
 	}
 
 	err = json.NewEncoder(w).Encode(data)
