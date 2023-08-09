@@ -6,12 +6,12 @@ import (
 	"net/http"
 )
 
-type luksoTotalSupplyResponse struct {
+type luksoSupplyResponse struct {
 	CirculatingSupply uint64 `json:"circulating_supply"`
 	TotalSupply       uint64 `json:"total_supply"`
 }
 
-func LuksoTotalSupply(w http.ResponseWriter, r *http.Request) {
+func LuksoSupply(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// From https://github.com/lukso-network/network-configs/blob/main/mainnet/shared/genesis.json
@@ -26,7 +26,7 @@ func LuksoTotalSupply(w http.ResponseWriter, r *http.Request) {
 	circulatingSupply := (genesisTotalSupply - genesisFoundationSupply) + totalAmountWithdrawn
 	totalSupply := genesisTotalSupply + totalAmountWithdrawn
 
-	data := luksoTotalSupplyResponse{
+	data := luksoSupplyResponse{
 		CirculatingSupply: circulatingSupply,
 		TotalSupply:       totalSupply,
 	}

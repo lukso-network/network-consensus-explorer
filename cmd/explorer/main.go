@@ -569,7 +569,7 @@ func main() {
 
 			router.HandleFunc("/monitoring/{module}", handlers.Monitoring).Methods("GET", "OPTIONS")
 
-			router.HandleFunc("/lukso/supply", handlers.LuksoTotalSupply).Methods("GET")
+			router.HandleFunc("/lukso/supply", handlers.LuksoSupply).Methods("GET")
 
 			// router.HandleFunc("/user/validators", handlers.UserValidators).Methods("GET")
 
