@@ -277,10 +277,6 @@ func WriteValidatorTotalPerformance(day uint64, concurrency uint64) error {
 			_, err = WriterDb.Exec(`insert into validator_performance (
 				validatorindex,
 				balance,
-				performance1d,
-				performance7d,
-				performance31d,
-				performance365d,
 
 				rank7d,
 
@@ -306,10 +302,7 @@ func WriteValidatorTotalPerformance(day uint64, concurrency uint64) error {
 					select 
 					vs_now.validatorindex, 
 						COALESCE(vs_now.end_balance, 0) as balance, 
-						0 as performance1d, 
-						0 as performance7d, 
-						0 as performance31d, 
-						0 as performance365d, 
+
 						0 as rank7d,
 
 						coalesce(vs_now.cl_rewards_gwei_total, 0) - coalesce(vs_1d.cl_rewards_gwei_total, 0) as cl_performance_1d, 
@@ -339,10 +332,6 @@ func WriteValidatorTotalPerformance(day uint64, concurrency uint64) error {
 				) 
 				on conflict (validatorindex) do update set 
 					balance = excluded.balance, 
-					performance1d=excluded.performance1d,
-					performance7d=excluded.performance7d,
-					performance31d=excluded.performance31d,
-					performance365d=excluded.performance365d,
 
 					rank7d=excluded.rank7d,
 
@@ -382,10 +371,10 @@ func WriteValidatorTotalPerformance(day uint64, concurrency uint64) error {
 		insert into validator_performance (                                                                                                 
 			validatorindex,          
 			balance,             
-			performance1d,
-			performance7d,
-			performance31d,  
-			performance365d,                                                                                             
+			cl_performance_1d,
+			cl_performance_7d,
+			cl_performance_31d,  
+			cl_performance_365d,                                                                                             
 			rank7d
 		) (
 			select validatorindex, 0, 0, 0, 0, 0, row_number() over(order by validator_performance.cl_performance_7d desc) as rank7d from validator_performance
