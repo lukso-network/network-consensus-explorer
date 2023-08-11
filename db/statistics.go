@@ -374,10 +374,25 @@ func WriteValidatorTotalPerformance(day uint64, concurrency uint64) error {
 			cl_performance_1d,
 			cl_performance_7d,
 			cl_performance_31d,  
-			cl_performance_365d,                                                                                             
+			cl_performance_365d,
+		    cl_performance_total,
+			cl_proposer_performance_total,
+		                                   
+			el_performance_1d,
+			el_performance_7d,
+			el_performance_31d,
+			el_performance_365d,
+			el_performance_total,
+
+			mev_performance_1d,
+			mev_performance_7d,
+			mev_performance_31d,
+			mev_performance_365d,
+			mev_performance_total,
+		                                   
 			rank7d
 		) (
-			select validatorindex, 0, 0, 0, 0, 0, row_number() over(order by validator_performance.cl_performance_7d desc) as rank7d from validator_performance
+			select validatorindex, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, row_number() over(order by validator_performance.cl_performance_7d desc) as rank7d from validator_performance
 		) 
 			on conflict (validatorindex) do update set 
 				rank7d=excluded.rank7d
