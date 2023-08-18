@@ -10,7 +10,7 @@ import (
 // LuksoSupply godoc
 // @Summary Get circulating supply and total supply for LUKSO network
 // @Tags LUKSO
-// @Description Returns information about circulating supply and total supply for LUKSO network
+// @Description Returns information about circulating supply and total supply for LUKSO network. Currency is LYXt (Gwei)
 // @Produce  json
 // @Success 200 {object} types.ApiResponse{data=types.LUKSOSupplyResponse} "Success"
 // @Failure 400 {object} types.ApiResponse "Failure"
@@ -20,8 +20,8 @@ func LuksoSupply(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// From https://github.com/lukso-network/network-configs/blob/main/mainnet/shared/genesis.json
-	genesisTotalSupply := uint64(42000000)
-	genesisFoundationSupply := uint64(11143518)
+	genesisTotalSupply := uint64(42000000000000000)
+	genesisFoundationSupply := uint64(11143518000000000)
 
 	totalAmountWithdrawn, _, err := db.GetTotalAmountWithdrawn()
 	if err != nil {

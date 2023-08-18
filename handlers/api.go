@@ -43,7 +43,7 @@ import (
 // @description High performance API for querying information about LUKSO blockchain (consensus layer)
 // @description 10 requests / 1 minute / IP. All API results are cached for 1 minute.
 // @tag.name LUKSO
-// @tag.description LUKSO network information
+// @tag.description Network information about LUKSO supply
 // @tag.name Epoch
 // @tag.description Consensus layer information about epochs
 // @tag.docs.url https://example.com
