@@ -386,6 +386,8 @@ func main() {
 		apiV1AuthRouter.HandleFunc("/stats/{offset}/{limit}", handlers.ClientStats).Methods("GET", "OPTIONS")
 		apiV1AuthRouter.HandleFunc("/ethpool", handlers.RegisterEthpoolSubscription).Methods("POST", "OPTIONS")
 
+		apiV1Router.HandleFunc("/lukso/supply", handlers.LuksoSupply).Methods("GET")
+
 		apiV1AuthRouter.Use(utils.CORSMiddleware)
 		apiV1AuthRouter.Use(utils.AuthorizedAPIMiddleware)
 
@@ -568,8 +570,6 @@ func main() {
 			router.HandleFunc("/notifications/unsubscribe", handlers.UserNotificationsUnsubscribeByHash).Methods("GET")
 
 			router.HandleFunc("/monitoring/{module}", handlers.Monitoring).Methods("GET", "OPTIONS")
-
-			router.HandleFunc("/lukso/supply", handlers.LuksoSupply).Methods("GET")
 
 			// router.HandleFunc("/user/validators", handlers.UserValidators).Methods("GET")
 
