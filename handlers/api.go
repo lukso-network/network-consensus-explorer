@@ -38,17 +38,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// @title beaconcha.in Ethereum API Documentation
+// @title LUKSO Consensus Explorer API Documentation
 // @version 1.1
-// @description High performance API for querying information about Ethereum
-// @description The API is currently free to use. A fair use policy applies. Calls are rate limited to
+// @description High performance API for querying information about LUKSO blockchain (consensus layer)
 // @description 10 requests / 1 minute / IP. All API results are cached for 1 minute.
-// @description If you required a higher usage plan please checkout https://beaconcha.in/pricing.
-// @description The API key can be provided in the Header or as a query string parameter.
-// @description
-// @description Key as a query string parameter: `curl https://beaconcha.in/api/v1/slot/1?apikey=<your_key>`
-// @description
-// @description Key in a request header:  `curl -H 'apikey: <your_key>' https://beaconcha.in/api/v1/slot/1`
 // @tag.name Epoch
 // @tag.description Consensus layer information about epochs
 // @tag.docs.url https://example.com
