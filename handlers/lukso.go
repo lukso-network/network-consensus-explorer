@@ -3,14 +3,19 @@ package handlers
 import (
 	"encoding/json"
 	"eth2-exporter/db"
+	"eth2-exporter/types"
 	"net/http"
 )
 
-type luksoSupplyResponse struct {
-	CirculatingSupply uint64 `json:"circulating_supply"`
-	TotalSupply       uint64 `json:"total_supply"`
-}
-
+// LuksoSupply godoc
+// @Summary Get circulating supply and total supply for LUKSO network
+// @Tags LUKSO
+// @Description Returns information about circulating supply and total supply for LUKSO network
+// @Produce  json
+// @Success 200 {object} types.ApiResponse{data=types.LUKSOSupplyResponse} "Success"
+// @Failure 400 {object} types.ApiResponse "Failure"
+// @Failure 500 {object} types.ApiResponse "Server Error"
+// @Router /api/v1/lukso/supply [get]
 func LuksoSupply(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -26,7 +31,7 @@ func LuksoSupply(w http.ResponseWriter, r *http.Request) {
 	circulatingSupply := (genesisTotalSupply - genesisFoundationSupply) + totalAmountWithdrawn
 	totalSupply := genesisTotalSupply + totalAmountWithdrawn
 
-	data := luksoSupplyResponse{
+	data := types.LUKSOSupplyResponse{
 		CirculatingSupply: circulatingSupply,
 		TotalSupply:       totalSupply,
 	}
