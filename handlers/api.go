@@ -58,8 +58,6 @@ import (
 // @tag.name User
 // @tag.description provided for Oauth applications (public OAuth support is a work in progress).
 // @securitydefinitions.oauth2.accessCode OAuthAccessCode
-// @tokenurl https://beaconcha.in/user/token
-// @authorizationurl https://beaconcha.in/user/authorize
 // @securitydefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
@@ -3408,7 +3406,6 @@ func ClientStats(w http.ResponseWriter, r *http.Request) {
 	sendOKResponse(j, r.URL.String(), []interface{}{data})
 }
 
-// ClientStatsPost godoc
 // @Summary Used in eth2 clients to submit stats to your beaconcha.in account. This data can be accessed by the app or the user stats api call.
 // @Tags User
 // @Produce json

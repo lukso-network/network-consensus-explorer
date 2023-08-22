@@ -475,6 +475,15 @@ func ReadConfig(cfg *types.Config, path string) error {
 		}
 	}
 
+	if cfg.Chain.GenesisTotalSupply == 0 {
+		switch cfg.Chain.Name {
+		case "lukso":
+			cfg.Chain.GenesisTotalSupply = 42000000000000000
+		default:
+			return fmt.Errorf("tried to set known genesis-validators-root, but unknown chain-name")
+		}
+	}
+
 	if cfg.Chain.DomainBLSToExecutionChange == "" {
 		cfg.Chain.DomainBLSToExecutionChange = "0x0A000000"
 	}

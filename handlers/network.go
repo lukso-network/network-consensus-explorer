@@ -5,6 +5,7 @@ import (
 	"eth2-exporter/db"
 	"eth2-exporter/services"
 	"eth2-exporter/types"
+	"eth2-exporter/utils"
 	"net/http"
 )
 
@@ -17,10 +18,10 @@ import (
 // @Failure 400 {object} types.ApiResponse "Failure"
 // @Failure 500 {object} types.ApiResponse "Server Error"
 // @Router /api/v2/totalsupply [get]
-func Supply(w http.ResponseWriter, r *http.Request, cfg *types.Config) {
+func Supply(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	genesisTotalSupply := cfg.Chain.GenesisTotalSupply
+	genesisTotalSupply := utils.Config.Chain.GenesisTotalSupply
 
 	totalAmountWithdrawn, _, err := db.GetTotalAmountWithdrawn()
 	if err != nil {
