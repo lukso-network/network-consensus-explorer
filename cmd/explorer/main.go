@@ -386,10 +386,11 @@ func main() {
 		apiV1AuthRouter.HandleFunc("/stats/{offset}/{limit}", handlers.ClientStats).Methods("GET", "OPTIONS")
 		apiV1AuthRouter.HandleFunc("/ethpool", handlers.RegisterEthpoolSubscription).Methods("POST", "OPTIONS")
 
-		apiV1Router.HandleFunc("/lukso/supply", handlers.LuksoSupply).Methods("GET")
-
 		apiV1AuthRouter.Use(utils.CORSMiddleware)
 		apiV1AuthRouter.Use(utils.AuthorizedAPIMiddleware)
+
+		apiV2Router := router.PathPrefix("/api/v2").Subrouter()
+		apiV2Router.HandleFunc("/totalsupply", handlers.Supply).Methods("GET")
 
 		router.HandleFunc("/api/healthz", handlers.ApiHealthz).Methods("GET", "HEAD")
 		router.HandleFunc("/api/healthz-loadbalancer", handlers.ApiHealthzLoadbalancer).Methods("GET", "HEAD")

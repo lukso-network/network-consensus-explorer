@@ -716,7 +716,6 @@ type EnsDomainResponse struct {
 	Domain  string `json:"domain"`
 }
 
-type LUKSOSupplyResponse struct {
-	CirculatingSupply uint64 `json:"circulating_supply"`
-	TotalSupply       uint64 `json:"total_supply"`
+type SupplyResponse struct {
+	TotalSupply uint64 `json:"total_supply"`
 }

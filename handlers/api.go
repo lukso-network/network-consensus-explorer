@@ -54,14 +54,6 @@ import (
 // @tag.name SyncCommittee
 // @tag.name Execution
 // @tag.description layer information about addresses, blocks and transactions
-// @tag.name ETH.STORE®
-// @tag.description is the transparent Ethereum staking reward reference rate.
-// @tag.docs.url https://staking.ethermine.org/statistics
-// @tag.docs.description More info
-// @tag.name Rocketpool
-// @tag.description validator statistics
-// @tag.docs.url https://rocketpool.net
-// @tag.docs.description More info
 // @tag.name Misc
 // @tag.name User
 // @tag.description provided for Oauth applications (public OAuth support is a work in progress).
