@@ -173,24 +173,28 @@ func startApiMonitoringService() {
 		Timeout: time.Second * 10,
 	}
 
+	url := "https://" + utils.Config.Frontend.SiteDomain + "/api/v1/epoch/latest"
+	// add apikey (if any) to url but don't log the api key when errors occur
+	errFields := map[string]interface{}{
+		"url": url}
+	url += "?apikey=" + utils.Config.Monitoring.ApiKey
+
 	for {
 		if !firstRun {
 			time.Sleep(time.Minute)
 		}
 		firstRun = false
 
-		url := "https://" + utils.Config.Frontend.SiteDomain + "/api/v1/epoch/latest"
 		resp, err := client.Get(url)
-
 		if err != nil {
-			utils.LogError(err, "getting client error", 0)
+			utils.LogError(err, "getting client error", 0, errFields)
 			ReportStatus(name, err.Error(), nil)
 			continue
 		}
 
 		if resp.StatusCode != 200 {
 			errorMsg := fmt.Errorf("error: api epoch / latest endpoint returned a non 200 status: %v", resp.StatusCode)
-			utils.LogError(nil, errorMsg, 0)
+			utils.LogError(nil, errorMsg, 0, errFields)
 			ReportStatus(name, errorMsg.Error(), nil)
 			continue
 		}
@@ -208,24 +212,28 @@ func startAppMonitoringService() {
 		Timeout: time.Second * 10,
 	}
 
+	url := "https://" + utils.Config.Frontend.SiteDomain + "/api/v1/app/dashboard"
+	// add apikey (if any) to url but don't log the api key when errors occur
+	errFields := map[string]interface{}{
+		"url": url}
+	url += "?apikey=" + utils.Config.Monitoring.ApiKey
+
 	for {
 		if !firstRun {
 			time.Sleep(time.Minute)
 		}
 		firstRun = false
 
-		url := "https://" + utils.Config.Frontend.SiteDomain + "/api/v1/app/dashboard"
 		resp, err := client.Post(url, "application/json", strings.NewReader(`{"indicesOrPubkey": "1,2"}`))
-
 		if err != nil {
-			utils.LogError(err, "POST to dashboard URL error", 0)
+			utils.LogError(err, "POST to dashboard URL error", 0, errFields)
 			ReportStatus(name, err.Error(), nil)
 			continue
 		}
 
 		if resp.StatusCode != 200 {
 			errorMsg := fmt.Errorf("error: api app endpoint returned a non 200 status: %v", resp.StatusCode)
-			utils.LogError(nil, errorMsg, 0)
+			utils.LogError(nil, errorMsg, 0, errFields)
 			ReportStatus(name, errorMsg.Error(), nil)
 			continue
 		}
@@ -249,6 +257,7 @@ func startServicesMonitoringService() {
 		"mempoolUpdater":            time.Minute * 15,
 		"indexPageDataUpdater":      time.Minute * 15,
 		"latestBlockUpdater":        time.Minute * 15,
+		"headBlockRootHashUpdater":  time.Minute * 15,
 		"notification-collector":    time.Minute * 15,
 		"relaysUpdater":             time.Minute * 15,
 		"ethstoreExporter":          time.Minute * 60,
@@ -256,12 +265,13 @@ func startServicesMonitoringService() {
 		"poolsUpdater":              time.Minute * 30,
 		"epochExporter":             time.Minute * 15,
 		"statistics":                time.Minute * 90,
+		"ethStoreStatistics":        time.Minute * 15,
+		"lastExportedStatisticDay":  time.Minute * 15,
 		//"notification-sender", //exclude for now as the sender is only running on mainnet
-		//"poolInfoUpdater":  time.Minute * 30,
 	}
 
-	if utils.Config.ServiceMonitoringConfigurations != nil {
-		for _, service := range utils.Config.ServiceMonitoringConfigurations {
+	if utils.Config.Monitoring.ServiceMonitoringConfigurations != nil {
+		for _, service := range utils.Config.Monitoring.ServiceMonitoringConfigurations {
 			if service.Duration == 0 {
 				delete(servicesToCheck, service.Name)
 				logger.Infof("Removing %v from monitoring service", service.Name)
