@@ -167,7 +167,6 @@ func ApiHealthzLoadbalancer(w http.ResponseWriter, r *http.Request) {
 
 // ApiEthStoreDay godoc
 // @Summary Get ETH.STORE® reference rate for a specified beaconchain-day or the latest day
-// @Tags ETH.STORE®
 // @Description ETH.STORE® represents the average financial return validators on the Ethereum network have achieved in a 24-hour period.
 // @Description For each 24-hour period the datapoint is denoted by the number of days that have passed since genesis for that period (= beaconchain-day)
 // @Description See https://github.com/gobitfly/eth.store for further information.
@@ -747,7 +746,6 @@ func ApiValidatorQueue(w http.ResponseWriter, r *http.Request) {
 
 // ApiRocketpoolStats godoc
 // @Summary Get global rocketpool network statistics
-// @Tags Rocketpool
 // @Produce  json
 // @Success 200 {object} types.ApiResponse{data=types.APIRocketpoolStatsResponse}
 // @Failure 400 {object} types.ApiResponse
@@ -770,7 +768,6 @@ func ApiRocketpoolStats(w http.ResponseWriter, r *http.Request) {
 
 // ApiRocketpoolValidators godoc
 // @Summary Get rocketpool specific data for given validators
-// @Tags Rocketpool
 // @Param  indexOrPubkey path string true "Up to 100 validator indicesOrPubkeys, comma separated"
 // @Produce  json
 // @Success 200 {object} types.ApiResponse{data=types.ApiRocketpoolValidatorResponse}
