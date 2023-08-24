@@ -11,7 +11,7 @@ import (
 
 // Supply godoc
 // @Summary Get total supply of all native network tokens in existence
-// @Tags Supply
+// @Tags Misc
 // @Description Returns information about total supply of all native network tokens in existence (in wei).
 // @Produce  json
 // @Success 200 {object} types.ApiResponse{data=types.SupplyResponse} "Success"
@@ -49,7 +49,12 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 		TotalSupply: totalSupply,
 	}
 
-	err = json.NewEncoder(w).Encode(data)
+	response := &types.ApiResponse{
+		Status: "OK",
+		Data:   data,
+	}
+
+	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
 		logger.WithError(err).WithField("route", r.URL.String()).Error("error encoding json response")
 		http.Error(w, "Internal server error", http.StatusServiceUnavailable)

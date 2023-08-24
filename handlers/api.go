@@ -42,8 +42,6 @@ import (
 // @version 1.1
 // @description High performance API for querying information about LUKSO blockchain (consensus layer)
 // @description 10 requests / 1 minute / IP. All API results are cached for 1 minute.
-// @tag.name LUKSO
-// @tag.description Network information about LUKSO supply
 // @tag.name Epoch
 // @tag.description Consensus layer information about epochs
 // @tag.docs.url https://example.com
@@ -57,8 +55,6 @@ import (
 // @tag.name Misc
 // @tag.name User
 // @tag.description provided for Oauth applications (public OAuth support is a work in progress).
-// @securitydefinitions.oauth2.accessCode OAuthAccessCode
-// @securitydefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
 
