@@ -30,7 +30,7 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 
 	latestFinalizedEpoch := services.LatestFinalizedEpoch()
 	if err != nil {
-		logger.WithError(err).Error("error getting total amount withdrawn from db")
+		logger.WithError(err).Error("error getting LatestFinalizedEpoch")
 	}
 
 	balanceStatistics, err := db.BigtableClient.GetValidatorBalanceStatistics(latestFinalizedEpoch, latestFinalizedEpoch)
