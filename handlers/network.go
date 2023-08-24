@@ -38,6 +38,8 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).Error("error getting validator balance data in GetValidatorBalanceStatistics")
 	}
 
+	logger.Infof("exported validators statistics for finalized epoch %v (balanceStatistics len: %v)", latestFinalizedEpoch, len(balanceStatistics))
+
 	totalValidatorsBalance := uint64(0)
 	for _, statistic := range balanceStatistics {
 		totalValidatorsBalance += statistic.EndBalance
