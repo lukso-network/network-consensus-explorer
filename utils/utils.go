@@ -477,7 +477,7 @@ func ReadConfig(cfg *types.Config, path string) error {
 		case "lukso":
 			cfg.Chain.GenesisTotalSupply = 42000000000000000
 		default:
-			return fmt.Errorf("tried to set known genesis-validators-root, but unknown chain-name")
+			return fmt.Errorf("tried to set known genesisTotalSupply, but unknown chain-name")
 		}
 	}
 
