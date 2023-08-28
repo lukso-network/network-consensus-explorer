@@ -717,5 +717,5 @@ type EnsDomainResponse struct {
 }
 
 type SupplyResponse struct {
-	TotalSupply uint64 `json:"total_supply"`
+	TotalSupply string `json:"total_supply"`
 }

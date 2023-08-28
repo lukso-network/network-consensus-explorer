@@ -7,8 +7,13 @@ import (
 	"eth2-exporter/services"
 	"eth2-exporter/types"
 	"eth2-exporter/utils"
+	"github.com/ethereum/go-ethereum/params"
 	"math/big"
 	"net/http"
+)
+
+const (
+	GWei = 1e9
 )
 
 // Supply godoc
@@ -41,21 +46,15 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).Error("new bigtable lighthouse client in monitor error", 0)
 	}
 
+	// Get the total staked gwei that was active (i.e., able to vote) during the latestFinalizedEpoch epoch
 	validatorParticipation, err := rpcClient.GetValidatorParticipation(latestFinalizedEpoch)
-
-	balanceStatistics, err := db.BigtableClient.GetValidatorBalanceStatistics(latestFinalizedEpoch, latestFinalizedEpoch)
-
-	totalValidatorsBalance := uint64(0)
-	for _, statistic := range balanceStatistics {
-		totalValidatorsBalance += statistic.EndBalance
-	}
-
-	logger.Infof("exported validators statistics for finalized epoch %v (balanceStatistics len: %v, total balance: %v)", latestFinalizedEpoch, len(balanceStatistics), totalValidatorsBalance)
 
 	totalSupply := genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther
 
+	amount := new(big.Int).Mul(new(big.Int).SetUint64(totalSupply), big.NewInt(params.GWei))
+
 	data := types.SupplyResponse{
-		TotalSupply: totalSupply,
+		TotalSupply: amount.String(),
 	}
 
 	response := &types.ApiResponse{
