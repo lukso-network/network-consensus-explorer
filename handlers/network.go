@@ -3,9 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"eth2-exporter/db"
+	"eth2-exporter/rpc"
 	"eth2-exporter/services"
 	"eth2-exporter/types"
 	"eth2-exporter/utils"
+	"math/big"
 	"net/http"
 )
 
@@ -33,19 +35,24 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 		logger.WithError(err).Error("error getting LatestFinalizedEpoch")
 	}
 
-	balanceStatistics, err := db.BigtableClient.GetValidatorBalanceStatistics(latestFinalizedEpoch, latestFinalizedEpoch)
+	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.Config.DepositChainID)
+	rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
 	if err != nil {
-		logger.WithError(err).Error("error getting validator balance data in GetValidatorBalanceStatistics")
+		logger.WithError(err).Error("new bigtable lighthouse client in monitor error", 0)
 	}
 
-	logger.Infof("exported validators statistics for finalized epoch %v (balanceStatistics len: %v)", latestFinalizedEpoch, len(balanceStatistics))
+	validatorParticipation, err := rpcClient.GetValidatorParticipation(latestFinalizedEpoch)
+
+	balanceStatistics, err := db.BigtableClient.GetValidatorBalanceStatistics(latestFinalizedEpoch, latestFinalizedEpoch)
 
 	totalValidatorsBalance := uint64(0)
 	for _, statistic := range balanceStatistics {
 		totalValidatorsBalance += statistic.EndBalance
 	}
 
-	totalSupply := genesisTotalSupply + totalAmountWithdrawn + totalValidatorsBalance
+	logger.Infof("exported validators statistics for finalized epoch %v (balanceStatistics len: %v, total balance: %v)", latestFinalizedEpoch, len(balanceStatistics), totalValidatorsBalance)
+
+	totalSupply := genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther
 
 	data := types.SupplyResponse{
 		TotalSupply: totalSupply,
