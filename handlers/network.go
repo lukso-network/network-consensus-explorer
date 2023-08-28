@@ -43,11 +43,14 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.Config.DepositChainID)
 	rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
 	if err != nil {
-		logger.WithError(err).Error("new bigtable lighthouse client in monitor error", 0)
+		logger.WithError(err).Error("new total supply Lighthouse client in monitor error")
 	}
 
 	// Get the total staked gwei that was active (i.e., able to vote) during the latestFinalizedEpoch epoch
 	validatorParticipation, err := rpcClient.GetValidatorParticipation(latestFinalizedEpoch)
+	if err != nil {
+		logger.WithError(err).Error("error getting GetValidatorParticipation")
+	}
 
 	totalSupply := genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther
 
