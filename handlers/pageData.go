@@ -295,14 +295,14 @@ func createMenuItems(active string, isMain bool) []types.MainMenuItem {
 							Icon:  "fa-file-import",
 						},
 					},
-				}, {
-					Links: []types.NavigationLink{
-						{
-							Label: "Withdrawals",
-							Path:  "/validators/withdrawals",
-							Icon:  "fa-money-bill",
-						},
-					},
+				// }, {
+				// 	Links: []types.NavigationLink{
+				// 		{
+				// 			Label: "Withdrawals",
+				// 			Path:  "/validators/withdrawals",
+				// 			Icon:  "fa-money-bill",
+				// 		},
+				// 	},
 				},
 			},
 		},
