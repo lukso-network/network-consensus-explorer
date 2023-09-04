@@ -60,8 +60,6 @@ github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/DataDog/zstd v1.5.2 h1:vUG4lAyuPCXO0TLbXvPv7EB7cNK1QV/luu55UHLrrn8=
-github.com/DeOne4eg/eth-unit-converter v0.2.0 h1:EbizT70ocvhyTYzdtVWp92Q1njj0+0aWRFMPlsca/kE=
-github.com/DeOne4eg/eth-unit-converter v0.2.0/go.mod h1:XDLXgMOeUv4n8BkGn817q9yDoKOJxoNdnJ2MLsdkarI=
 github.com/Gurpartap/storekit-go v0.0.0-20201205024111-36b6cd5c6a21 h1:HcdvlzaQ4CJfH7xbfJZ3ZHN//BTEpId46iKEMuP3wHE=
 github.com/Gurpartap/storekit-go v0.0.0-20201205024111-36b6cd5c6a21/go.mod h1:7PODFS++oNZ6khojmPBvkrDeFO/hrc3jmvWvQAOXorw=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=

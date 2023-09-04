@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go/bigtable v1.16.0
 	cloud.google.com/go/secretmanager v1.9.0
 	firebase.google.com/go v3.13.0+incompatible
-	github.com/DeOne4eg/eth-unit-converter v0.2.0
 	github.com/Gurpartap/storekit-go v0.0.0-20201205024111-36b6cd5c6a21
 	github.com/alexedwards/scs/redisstore v0.0.0-20230217120314-6b1bedc0f08c
 	github.com/alexedwards/scs/v2 v2.5.0
