@@ -169,7 +169,6 @@ func parseValidatorsDataQueryParams(r *http.Request) (*ValidatorsDataQueryParams
 		"4": "activationepoch",
 		"5": "exitepoch",
 		"6": "withdrawableepoch",
-		"7": "lastattestationslot",
 		"8": "slashed",
 	}
 	orderBy, exists := orderByMap[orderColumn]
@@ -192,6 +191,10 @@ func parseValidatorsDataQueryParams(r *http.Request) (*ValidatorsDataQueryParams
 	if err != nil {
 		logger.Errorf("error converting datatables start parameter from string to int: %v", err)
 		return nil, err
+	}
+	if start > 10000 {
+		// limit offset to 10000, otherwise the query will be too slow
+		start = 10000
 	}
 
 	length, err := strconv.ParseInt(q.Get("length"), 10, 64)
@@ -246,7 +249,6 @@ func ValidatorsData(w http.ResponseWriter, r *http.Request) {
 		validators.slashed,  
 		validators.activationepoch,  
 		validators.exitepoch,  
-		validators.lastattestationslot,  
 		COALESCE(validator_names.name, '') AS name,  
 		validators.status AS state  
 		FROM validators  
@@ -285,6 +287,16 @@ func ValidatorsData(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	lastAttestationSlots, err := db.BigtableClient.GetLastAttestationSlots(indices)
+	if err != nil {
+		logger.WithError(err).WithField("route", r.URL.String()).Errorf("error retrieving validator last attestation slot data")
+		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		return
+	}
+	for _, validator := range validators {
+		validator.LastAttestationSlot = int64(lastAttestationSlots[validator.ValidatorIndex])
+	}
+
 	isAll := true
 
 	tableData := make([][]interface{}, len(validators))
@@ -321,10 +333,10 @@ func ValidatorsData(w http.ResponseWriter, r *http.Request) {
 			tableData[i] = append(tableData[i], nil)
 		}
 
-		if v.LastAttestationSlot != nil && *v.LastAttestationSlot > 0 {
+		if v.LastAttestationSlot > 0 {
 			tableData[i] = append(tableData[i], []interface{}{
-				*v.LastAttestationSlot,
-				utils.SlotToTime(uint64(*v.LastAttestationSlot)).Unix(),
+				v.LastAttestationSlot,
+				utils.SlotToTime(uint64(v.LastAttestationSlot)).Unix(),
 			})
 		} else {
 			tableData[i] = append(tableData[i], nil)
@@ -354,6 +366,13 @@ func ValidatorsData(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		countFiltered = countTotal
+	}
+
+	if countTotal > 10000 {
+		countTotal = 10000
+	}
+	if countFiltered > 10000 {
+		countFiltered = 10000
 	}
 
 	data := &types.DataTableResponse{
