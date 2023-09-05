@@ -38,17 +38,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// @title beaconcha.in Ethereum API Documentation
+// @title LUKSO Consensus Explorer API Documentation
 // @version 1.1
-// @description High performance API for querying information about Ethereum
-// @description The API is currently free to use. A fair use policy applies. Calls are rate limited to
+// @description High performance API for querying information about LUKSO blockchain (consensus layer)
 // @description 10 requests / 1 minute / IP. All API results are cached for 1 minute.
-// @description If you required a higher usage plan please checkout https://beaconcha.in/pricing.
-// @description The API key can be provided in the Header or as a query string parameter.
-// @description
-// @description Key as a query string parameter: `curl https://beaconcha.in/api/v1/slot/1?apikey=<your_key>`
-// @description
-// @description Key in a request header:  `curl -H 'apikey: <your_key>' https://beaconcha.in/api/v1/slot/1`
 // @tag.name Epoch
 // @tag.description Consensus layer information about epochs
 // @tag.docs.url https://example.com
@@ -59,21 +52,9 @@ import (
 // @tag.name SyncCommittee
 // @tag.name Execution
 // @tag.description layer information about addresses, blocks and transactions
-// @tag.name ETH.STORE®
-// @tag.description is the transparent Ethereum staking reward reference rate.
-// @tag.docs.url https://staking.ethermine.org/statistics
-// @tag.docs.description More info
-// @tag.name Rocketpool
-// @tag.description validator statistics
-// @tag.docs.url https://rocketpool.net
-// @tag.docs.description More info
 // @tag.name Misc
 // @tag.name User
 // @tag.description provided for Oauth applications (public OAuth support is a work in progress).
-// @securitydefinitions.oauth2.accessCode OAuthAccessCode
-// @tokenurl https://beaconcha.in/user/token
-// @authorizationurl https://beaconcha.in/user/authorize
-// @securitydefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
 
@@ -186,7 +167,6 @@ func ApiHealthzLoadbalancer(w http.ResponseWriter, r *http.Request) {
 
 // ApiEthStoreDay godoc
 // @Summary Get ETH.STORE® reference rate for a specified beaconchain-day or the latest day
-// @Tags ETH.STORE®
 // @Description ETH.STORE® represents the average financial return validators on the Ethereum network have achieved in a 24-hour period.
 // @Description For each 24-hour period the datapoint is denoted by the number of days that have passed since genesis for that period (= beaconchain-day)
 // @Description See https://github.com/gobitfly/eth.store for further information.
@@ -767,7 +747,6 @@ func ApiValidatorQueue(w http.ResponseWriter, r *http.Request) {
 
 // ApiRocketpoolStats godoc
 // @Summary Get global rocketpool network statistics
-// @Tags Rocketpool
 // @Produce  json
 // @Success 200 {object} types.ApiResponse{data=types.APIRocketpoolStatsResponse}
 // @Failure 400 {object} types.ApiResponse
@@ -790,7 +769,6 @@ func ApiRocketpoolStats(w http.ResponseWriter, r *http.Request) {
 
 // ApiRocketpoolValidators godoc
 // @Summary Get rocketpool specific data for given validators
-// @Tags Rocketpool
 // @Param  indexOrPubkey path string true "Up to 100 validator indicesOrPubkeys, comma separated"
 // @Produce  json
 // @Success 200 {object} types.ApiResponse{data=types.ApiRocketpoolValidatorResponse}
@@ -3445,7 +3423,6 @@ func ClientStats(w http.ResponseWriter, r *http.Request) {
 	sendOKResponse(j, r.URL.String(), []interface{}{data})
 }
 
-// ClientStatsPost godoc
 // @Summary Used in eth2 clients to submit stats to your beaconcha.in account. This data can be accessed by the app or the user stats api call.
 // @Tags User
 // @Produce json
