@@ -1181,6 +1181,13 @@ func UserDeletePost(w http.ResponseWriter, r *http.Request) {
 		}
 
 		Logout(w, r)
+		err = purgeAllSessionsForUser(r.Context(), user.UserID)
+		if err != nil {
+			utils.LogError(err, "error purging sessions for user", 0, map[string]interface{}{"userID": user.UserID})
+			utils.SetFlash(w, r, authSessionName, authInternalServerErrorFlashMsg)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			return
+		}
 	} else {
 		utils.LogError(nil, "Trying to delete an unauthenticated user", 0)
 		http.Redirect(w, r, "/user/settings", http.StatusSeeOther)
@@ -1846,11 +1853,8 @@ func internUserNotificationsSubscribe(event, filter string, threshold float64, w
 		return false
 	}
 
-	isPkey := searchPubkeyExactRE.MatchString(filter)
-	filterLen := len(filter)
-
-	if filterLen != 0 && !isPkey {
-		errMsg := fmt.Errorf("error invalid pubkey characters or length")
+	if !isValidSubscriptionFilter(eventName, filter) {
+		errMsg := fmt.Errorf("error invalid filter, not pubkey or client")
 		errFields := map[string]interface{}{
 			"filter":     filter,
 			"filter_len": len(filter)}
@@ -1881,6 +1885,7 @@ func internUserNotificationsSubscribe(event, filter string, threshold float64, w
 		// rocketpool thresholds are free
 	}
 
+	filterLen := len(filter)
 	if filterLen == 0 && !strings.HasPrefix(string(eventName), "monitoring_") && !strings.HasPrefix(string(eventName), "rocketpool_") { // no filter = add all my watched validators
 		myValidators, err2 := db.GetTaggedValidators(filterWatchlist)
 		if err2 != nil {
@@ -2025,11 +2030,8 @@ func internUserNotificationsUnsubscribe(event, filter string, w http.ResponseWri
 		return false
 	}
 
-	isPkey := searchPubkeyExactRE.MatchString(filter)
-	filterLen := len(filter)
-
-	if filterLen != 0 && !isPkey {
-		errMsg := fmt.Errorf("error invalid pubkey characters or length")
+	if !isValidSubscriptionFilter(eventName, filter) {
+		errMsg := fmt.Errorf("error invalid filter, not pubkey or client")
 		errFields := map[string]interface{}{
 			"filter":     filter,
 			"filter_len": len(filter)}
@@ -2046,6 +2048,7 @@ func internUserNotificationsUnsubscribe(event, filter string, w http.ResponseWri
 		Network:        utils.GetNetwork(),
 	}
 
+	filterLen := len(filter)
 	if filterLen == 0 && !strings.HasPrefix(string(eventName), "monitoring_") && !strings.HasPrefix(string(eventName), "rocketpool_") { // no filter = add all my watched validators
 
 		myValidators, err2 := db.GetTaggedValidators(filterWatchlist)
@@ -2113,11 +2116,8 @@ func UserNotificationsUnsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isPkey := searchPubkeyExactRE.MatchString(filter)
-	filterLen := len(filter)
-
-	if filterLen != 0 && !isPkey {
-		errMsg := fmt.Errorf("error invalid pubkey characters or length")
+	if !isValidSubscriptionFilter(eventName, filter) {
+		errMsg := fmt.Errorf("error invalid filter, not pubkey or client")
 		errFields := map[string]interface{}{
 			"filter":     filter,
 			"filter_len": len(filter)}
@@ -2127,6 +2127,7 @@ func UserNotificationsUnsubscribe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	filterLen := len(filter)
 	if filterLen == 0 && !types.IsUserIndexed(eventName) { // no filter = add all my watched validators
 
 		filter := db.WatchlistFilter{
@@ -2173,6 +2174,27 @@ func UserNotificationsUnsubscribe(w http.ResponseWriter, r *http.Request) {
 	}
 
 	OKResponse(w, r)
+}
+
+func isValidSubscriptionFilter(eventName types.EventName, filter string) bool {
+	ethClients := []string{"geth", "nethermind", "besu", "erigon", "teku", "prysm", "nimbus", "lighthouse", "lodestar", "rocketpool", "mev-boost"}
+
+	isPkey := searchPubkeyExactRE.MatchString(filter)
+
+	isClientName := false
+	for _, str := range ethClients {
+		if str == filter {
+			isClientName = true
+			break
+		}
+	}
+
+	isClient := false
+	if eventName == types.EthClientUpdateEventName && isClientName {
+		isClient = true
+	}
+
+	return len(filter) == 0 || isPkey || isClient
 }
 
 func UserNotificationsUnsubscribeByHash(w http.ResponseWriter, r *http.Request) {
