@@ -14,7 +14,7 @@ import (
 
 	eth_rewards "github.com/gobitfly/eth-rewards"
 	"github.com/gobitfly/eth-rewards/beacon"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -65,6 +65,24 @@ func main() {
 	})
 	defer db.ReaderDb.Close()
 	defer db.WriterDb.Close()
+
+	if bnAddress == nil || *bnAddress == "" {
+		if utils.Config.Indexer.Node.Host == "" {
+			utils.LogFatal(nil, "no beacon node url provided", 0)
+		} else {
+			logrus.Info("applying becon node endpoint from config")
+			*bnAddress = fmt.Sprintf("http://%s:%s", utils.Config.Indexer.Node.Host, utils.Config.Indexer.Node.Port)
+		}
+	}
+
+	if enAddress == nil || *enAddress == "" {
+		if utils.Config.Eth1ErigonEndpoint == "" {
+			utils.LogFatal(nil, "no execution node url provided", 0)
+		} else {
+			logrus.Info("applying execution node endpoint from config")
+			*enAddress = utils.Config.Eth1ErigonEndpoint
+		}
+	}
 
 	client := beacon.NewClient(*bnAddress, time.Minute*5)
 

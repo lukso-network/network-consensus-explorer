@@ -15,7 +15,6 @@ import (
 	"math/big"
 	"sort"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	itypes "github.com/gobitfly/eth-rewards/types"
@@ -27,9 +26,6 @@ import (
 	geth_types "github.com/ethereum/go-ethereum/core/types"
 	geth_rpc "github.com/ethereum/go-ethereum/rpc"
 )
-
-var eth1BlockDepositReached atomic.Value
-var depositThresholdReached atomic.Value
 
 var logger = logrus.New().WithField("module", "services")
 
@@ -691,44 +687,51 @@ func getIndexPageData() (*types.IndexPageData, error) {
 			return nil, fmt.Errorf("error retrieving eth1 deposits: %v", err)
 		}
 
-		threshold, err := db.GetDepositThresholdTime()
-		if err != nil {
-			logger.WithError(err).Error("error could not calculate threshold time")
-		}
-		if threshold == nil {
-			threshold = &deposit.BlockTs
+		if deposit.Total == 0 { // see if there are any genesis validators
+			err = db.ReaderDb.Get(&deposit.Total, "SELECT COALESCE(MAX(validatorindex), 0) FROM validators")
+			if err != nil {
+				return nil, fmt.Errorf("error retrieving max validator index: %v", err)
+			}
+
+			if deposit.Total > 0 {
+				deposit.Total = (deposit.Total + 1) * 32
+				deposit.BlockTs = time.Now()
+			}
 		}
 
 		data.DepositThreshold = float64(utils.Config.Chain.Config.MinGenesisActiveValidatorCount) * 32
-		data.DepositedTotal = float64(deposit.Total) * 32
+		data.DepositedTotal = float64(deposit.Total)
 
 		data.ValidatorsRemaining = (data.DepositThreshold - data.DepositedTotal) / 32
-		genesisDelay := time.Duration(int64(utils.Config.Chain.Config.GenesisDelay) * 1000 * 1000 * 1000) // convert seconds to nanoseconds
+		// genesisDelay := time.Duration(int64(utils.Config.Chain.Config.GenesisDelay) * 1000 * 1000 * 1000) // convert seconds to nanoseconds
 
 		minGenesisTime := time.Unix(int64(utils.Config.Chain.Config.MinGenesisTime), 0)
 
 		data.MinGenesisTime = minGenesisTime.Unix()
-		data.NetworkStartTs = minGenesisTime.Add(genesisDelay).Unix()
+		data.NetworkStartTs = minGenesisTime.Add(time.Second * time.Duration(utils.Config.Chain.Config.GenesisDelay)).Unix()
 
-		if minGenesisTime.Before(time.Now()) {
-			minGenesisTime = time.Now()
-		}
+		// if minGenesisTime.Before(time.Now()) {
+		// 	minGenesisTime = time.Now()
+		// }
+
+		// logger.Infof("start ts is :%v", data.NetworkStartTs)
 
 		// enough deposits
-		if data.DepositedTotal > data.DepositThreshold {
-			if depositThresholdReached.Load() == nil {
-				eth1BlockDepositReached.Store(*threshold)
-				depositThresholdReached.Store(true)
-			}
-			eth1Block := eth1BlockDepositReached.Load().(time.Time)
+		// if data.DepositedTotal > data.DepositThreshold {
+		// 	if depositThresholdReached.Load() == nil {
+		// 		eth1BlockDepositReached.Store(*threshold)
+		// 		depositThresholdReached.Store(true)
+		// 	}
+		// 	eth1Block := eth1BlockDepositReached.Load().(time.Time)
 
-			if !(startSlotTime == time.Unix(0, 0)) && eth1Block.Add(genesisDelay).After(minGenesisTime) {
-				// Network starts after min genesis time
-				data.NetworkStartTs = eth1Block.Add(genesisDelay).Unix()
-			} else {
-				data.NetworkStartTs = minGenesisTime.Unix()
-			}
-		}
+		// 	if !(startSlotTime == time.Unix(0, 0)) && eth1Block.Add(genesisDelay).After(minGenesisTime) {
+		// 		// Network starts after min genesis time
+		// 		data.NetworkStartTs = eth1Block.Add(time.Second * time.Duration(utils.Config.Chain.Config.GenesisDelay)).Unix()
+		// 	} else {
+		// 		data.NetworkStartTs = minGenesisTime.Unix()
+		// 	}
+		// }
+		// logger.Infof("start ts is :%v", data.NetworkStartTs)
 
 		latestChartsPageData := LatestChartsPageData()
 		if len(latestChartsPageData) != 0 {
@@ -1320,7 +1323,7 @@ func getGasNowData() (*types.GasNowPageData, error) {
 
 	err = client.Call(&raw, "txpool_content")
 	if err != nil {
-		utils.LogFatal(err, "error getting raw json data from txpool_content", 0)
+		return nil, fmt.Errorf("error getting raw json data from txpool_content: %w", err)
 	}
 
 	txPoolContent := &TxPoolContent{}
@@ -1482,24 +1485,22 @@ func mempoolUpdater(wg *sync.WaitGroup) {
 
 func burnUpdater(wg *sync.WaitGroup) {
 	firstRun := true
-	for {
+	for ; ; time.Sleep(time.Minute * 15) { // only update once every 15 minutes
 		data, err := getBurnPageData()
 		if err != nil {
 			logger.Errorf("error retrieving burn page data: %v", err)
-			time.Sleep(time.Second * 30)
 			continue
 		}
 		cacheKey := fmt.Sprintf("%d:frontend:burn", utils.Config.Chain.Config.DepositChainID)
 		err = cache.TieredCache.Set(cacheKey, data, time.Hour*24)
 		if err != nil {
-			logger.Errorf("error caching relaysData: %v", err)
+			logger.Errorf("error caching burn data: %v", err)
 		}
 		if firstRun {
 			logger.Infof("initialized burn updater")
 			wg.Done()
 			firstRun = false
 		}
-		time.Sleep(time.Minute)
 	}
 }
 
@@ -1556,7 +1557,13 @@ func getBurnPageData() (*types.BurnPageData, error) {
 	// }
 
 	// swap this for GetEpochIncomeHistory in the future
-	income, err := db.BigtableClient.GetValidatorIncomeDetailsHistory([]uint64{}, latestEpoch-10, latestBlock)
+
+	validators, err := db.GetValidatorIndices()
+	if err != nil {
+		return nil, err
+	}
+
+	income, err := db.BigtableClient.GetValidatorIncomeDetailsHistory(validators, latestEpoch-10, latestEpoch)
 	if err != nil {
 		logger.WithError(err).Error("error getting validator income history")
 	}
@@ -1675,6 +1682,7 @@ func getBurnPageData() (*types.BurnPageData, error) {
 
 func latestExportedStatisticDayUpdater(wg *sync.WaitGroup) {
 	firstRun := true
+	cacheKey := fmt.Sprintf("%d:frontend:lastExportedStatisticDay", utils.Config.Chain.Config.DepositChainID)
 	for {
 		lastDay, err := db.GetLastExportedStatisticDay()
 		if err != nil {
@@ -1683,7 +1691,6 @@ func latestExportedStatisticDayUpdater(wg *sync.WaitGroup) {
 			continue
 		}
 
-		cacheKey := fmt.Sprintf("%d:frontend:lastExportedStatisticDay", utils.Config.Chain.Config.DepositChainID)
 		err = cache.TieredCache.Set(cacheKey, lastDay, time.Hour*24)
 		if err != nil {
 			logger.Errorf("error caching last exported statistics day: %v", err)
@@ -1699,14 +1706,16 @@ func latestExportedStatisticDayUpdater(wg *sync.WaitGroup) {
 }
 
 // LatestExportedStatisticDay will return the last exported day in the validator_stats table
-func LatestExportedStatisticDay() uint64 {
+func LatestExportedStatisticDay() (uint64, error) {
 	cacheKey := fmt.Sprintf("%d:frontend:lastExportedStatisticDay", utils.Config.Chain.Config.DepositChainID)
 
 	if wanted, err := cache.TieredCache.GetUint64WithLocalTimeout(cacheKey, time.Second*5); err == nil {
-		return wanted
-	} else {
-		logger.Errorf("error retrieving last exported statistics day from cache: %v", err)
+		return wanted, nil
 	}
-	wanted, _ := db.GetLastExportedStatisticDay()
-	return wanted
+	wanted, err := db.GetLastExportedStatisticDay()
+
+	if err != nil {
+		return 0, err
+	}
+	return wanted, nil
 }

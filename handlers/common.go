@@ -12,8 +12,10 @@ import (
 	"eth2-exporter/utils"
 	"fmt"
 	"html/template"
+	"math"
 	"math/big"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -47,8 +49,13 @@ func GetValidatorEarnings(validators []uint64, currency string) (*types.Validato
 		return nil, nil, errors.New("no validators provided")
 	}
 	latestFinalizedEpoch := services.LatestFinalizedEpoch()
-	lastStatsDay := services.LatestExportedStatisticDay()
-	firstSlot := utils.GetLastBalanceInfoSlotForDay(lastStatsDay) + 1
+
+	firstSlot := uint64(0)
+	lastStatsDay, lastExportedStatsErr := services.LatestExportedStatisticDay()
+	if lastExportedStatsErr == nil {
+		firstSlot = utils.GetLastBalanceInfoSlotForDay(lastStatsDay) + 1
+	}
+
 	lastSlot := latestFinalizedEpoch * utils.Config.Chain.Config.SlotsPerEpoch
 
 	balancesMap := make(map[uint64]*types.Validator, 0)
@@ -80,7 +87,7 @@ func GetValidatorEarnings(validators []uint64, currency string) (*types.Validato
 
 	income := types.ValidatorIncomePerformance{}
 	g.Go(func() error {
-		return db.GetValidatorIncomePerforamance(validators, &income)
+		return db.GetValidatorIncomePerformance(validators, &income)
 	})
 
 	var totalDeposits uint64
@@ -93,24 +100,26 @@ func GetValidatorEarnings(validators []uint64, currency string) (*types.Validato
 		return db.GetFirstActivationEpoch(validators, &firstActivationEpoch)
 	})
 
-	var totalWithdrawals uint64
-	g.Go(func() error {
-		return db.GetTotalValidatorWithdrawals(validators, &totalWithdrawals)
-	})
-
 	var lastDeposits uint64
-	g.Go(func() error {
-		return db.GetValidatorDepositsForSlots(validators, firstSlot, lastSlot, &lastDeposits)
-	})
-
 	var lastWithdrawals uint64
-	g.Go(func() error {
-		return db.GetValidatorWithdrawalsForSlots(validators, firstSlot, lastSlot, &lastWithdrawals)
-	})
-
 	var lastBalance uint64
 	g.Go(func() error {
-		return db.GetValidatorBalanceForDay(validators, lastStatsDay, &lastBalance)
+		if lastExportedStatsErr == db.ErrNoStats {
+			err := db.GetValidatorActivationBalance(validators, &lastBalance)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := db.GetValidatorBalanceForDay(validators, lastStatsDay, &lastBalance)
+			if err != nil {
+				return err
+			}
+		}
+		err := db.GetValidatorDepositsForSlots(validators, firstSlot, lastSlot, &lastDeposits)
+		if err != nil {
+			return err
+		}
+		return db.GetValidatorWithdrawalsForSlots(validators, firstSlot, lastSlot, &lastWithdrawals)
 	})
 
 	proposals := []types.ValidatorProposalInfo{}
@@ -137,29 +146,48 @@ func GetValidatorEarnings(validators []uint64, currency string) (*types.Validato
 	if clApr7d < float64(-1) {
 		clApr7d = float64(-1)
 	}
+	if math.IsNaN(clApr7d) {
+		clApr7d = float64(0)
+	}
 
 	elApr7d := ((float64(income.ElIncome7d) / float64(totalDeposits)) * 365) / 7
 	if elApr7d < float64(-1) {
 		elApr7d = float64(-1)
+	}
+	if math.IsNaN(elApr7d) {
+		elApr7d = float64(0)
 	}
 
 	clApr31d := ((float64(income.ClIncome31d) / float64(totalDeposits)) * 365) / 31
 	if clApr31d < float64(-1) {
 		clApr31d = float64(-1)
 	}
+	if math.IsNaN(clApr31d) {
+		clApr31d = float64(0)
+	}
 
 	elApr31d := ((float64(income.ElIncome31d) / float64(totalDeposits)) * 365) / 31
 	if elApr31d < float64(-1) {
 		elApr31d = float64(-1)
 	}
+	if math.IsNaN(elApr31d) {
+		elApr31d = float64(0)
+	}
+
 	clApr365d := (float64(income.ClIncome365d) / float64(totalDeposits))
 	if clApr365d < float64(-1) {
 		clApr365d = float64(-1)
+	}
+	if math.IsNaN(clApr365d) {
+		clApr365d = float64(0)
 	}
 
 	elApr365d := (float64(income.ElIncome365d) / float64(totalDeposits))
 	if elApr365d < float64(-1) {
 		elApr365d = float64(-1)
+	}
+	if math.IsNaN(elApr365d) {
+		elApr365d = float64(0)
 	}
 
 	incomeToday := types.ClElInt64{
@@ -169,7 +197,10 @@ func GetValidatorEarnings(validators []uint64, currency string) (*types.Validato
 	}
 
 	proposedToday := []uint64{}
-	todayStartEpoch := uint64(lastStatsDay+1) * utils.EpochsPerDay()
+	todayStartEpoch := uint64(0)
+	if lastExportedStatsErr == nil {
+		todayStartEpoch = uint64(lastStatsDay+1) * utils.EpochsPerDay()
+	}
 	validatorProposalData := types.ValidatorProposalData{}
 	validatorProposalData.Proposals = make([][]uint64, len(proposals))
 	for i, b := range proposals {
@@ -621,8 +652,8 @@ func SetDataTableStateChanges(w http.ResponseWriter, r *http.Request) {
 	settings := types.DataTableSaveState{}
 	err = json.NewDecoder(r.Body).Decode(&settings)
 	if err != nil {
-		utils.LogError(err, errMsgPrefix+", could not parse body", 0, errFields)
-		w.WriteHeader(http.StatusInternalServerError)
+		logger.Warnf(errMsgPrefix+", could not parse body for tableKey %v: %v", tableKey, err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -691,4 +722,61 @@ func GetWithdrawableCountFromCursor(epoch uint64, validatorindex uint64, cursor 
 	} else {
 		return 0, nil
 	}
+}
+
+func getExecutionChartData(indices []uint64, currency string, lowerBoundDay uint64) ([]*types.ChartDataPoint, error) {
+	var limit uint64 = 300
+	blockList, consMap, err := findExecBlockNumbersByProposerIndex(indices, 0, limit, false, true, lowerBoundDay)
+	if err != nil {
+		return nil, err
+	}
+
+	blocks, err := db.BigtableClient.GetBlocksIndexedMultiple(blockList, limit)
+	if err != nil {
+		return nil, err
+	}
+	relaysData, err := db.GetRelayDataForIndexedBlocks(blocks)
+	if err != nil {
+		return nil, err
+	}
+
+	var chartData = []*types.ChartDataPoint{}
+	epochsPerDay := utils.EpochsPerDay()
+	color := "#90ed7d"
+
+	// Map to keep track of the cumulative reward for each day
+	dayRewardMap := make(map[int64]float64)
+
+	for _, block := range blocks {
+		consData := consMap[block.Number]
+		day := int64(consData.Epoch / epochsPerDay)
+
+		var totalReward float64
+		if relayData, ok := relaysData[common.BytesToHash(block.Hash)]; ok {
+			totalReward = utils.WeiToEther(relayData.MevBribe.BigInt()).InexactFloat64()
+		} else {
+			totalReward = utils.WeiToEther(utils.Eth1TotalReward(block)).InexactFloat64()
+		}
+
+		// Add the reward to the existing reward for the day or set it if not previously set
+		dayRewardMap[day] += totalReward
+	}
+
+	// Now populate the chartData array using the dayRewardMap
+	exchangeRate := utils.ExchangeRateForCurrency(currency)
+	for day, reward := range dayRewardMap {
+		ts := float64(utils.DayToTime(day).Unix() * 1000)
+		chartData = append(chartData, &types.ChartDataPoint{
+			X:     ts,
+			Y:     exchangeRate * reward,
+			Color: color,
+		})
+	}
+
+	// If needed, sort chartData based on X values
+	sort.Slice(chartData, func(i, j int) bool {
+		return chartData[i].X < chartData[j].X
+	})
+
+	return chartData, nil
 }

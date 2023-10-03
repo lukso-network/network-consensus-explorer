@@ -99,7 +99,7 @@ func eth1DepositsExporter() {
 			if toBlock > eth1LookBack {
 				fromBlock = toBlock - eth1LookBack
 			} else {
-				fromBlock = 1
+				fromBlock = 0
 			}
 		}
 
@@ -139,13 +139,15 @@ func eth1DepositsExporter() {
 		// make sure we are progressing even if there are no deposits in the last batch
 		lastFetchedBlock = toBlock
 
-		logger.WithFields(logrus.Fields{
-			"duration":      time.Since(t0),
-			"blockHeight":   blockHeight,
-			"fromBlock":     fromBlock,
-			"toBlock":       toBlock,
-			"depositsSaved": len(depositsToSave),
-		}).Info("exported eth1-deposits")
+		if len(depositsToSave) > 0 {
+			logger.WithFields(logrus.Fields{
+				"duration":      time.Since(t0),
+				"blockHeight":   blockHeight,
+				"fromBlock":     fromBlock,
+				"toBlock":       toBlock,
+				"depositsSaved": len(depositsToSave),
+			}).Info("exported eth1-deposits")
+		}
 
 		// progress faster if we are not synced to head yet
 		if blockHeight != toBlock {
