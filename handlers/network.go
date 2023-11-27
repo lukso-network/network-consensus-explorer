@@ -77,10 +77,10 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	depositContractBalance := utils.WeiBytesToEther(addressMetadata.EthBalance.Balance)
+	depositContractBalance := uint64(utils.WeiBytesToEther(addressMetadata.EthBalance.Balance).InexactFloat64())
 	depositContractBalanceAmount := (new(big.Int).Mul(new(big.Int).SetUint64(depositContractBalance), big.NewInt(params.Ether))).Uint64()
 
-	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - depositContractBalanceAmount - latestBurnData.TotalBurned
+	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - depositContractBalanceAmount - uint64(latestBurnData.TotalBurned)
 	amount := new(big.Int).Mul(new(big.Int).SetUint64(totalSupply), big.NewInt(params.GWei))
 
 	data := types.SupplyResponse{
