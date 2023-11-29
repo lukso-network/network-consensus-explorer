@@ -9,6 +9,7 @@ import (
 	"eth2-exporter/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/shopspring/decimal"
 	"math/big"
 	"net/http"
 	"strings"
@@ -77,10 +78,12 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	depositContractBalance := uint64(utils.WeiBytesToEther(addressMetadata.EthBalance.Balance).InexactFloat64())
-	depositContractBalanceAmount := (new(big.Int).Mul(new(big.Int).SetUint64(depositContractBalance), big.NewInt(params.Ether))).Uint64()
+	depositContractBalanceGWei := decimal.NewFromBigInt(new(big.Int).SetBytes(addressMetadata.EthBalance.Balance), 0).DivRound(decimal.NewFromInt(params.GWei), 18)
 
-	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - (depositContractBalanceAmount + uint64(latestBurnData.TotalBurned))
+	logger.Errorf("address: %v | depositContractBalance: %v", string(address), depositContractBalanceGWei)
+	logger.Errorf("genesisTotalSupply: %v | totalAmountWithdrawn: %v | validatorParticipation.EligibleEther: %v", genesisTotalSupply, totalAmountWithdrawn, validatorParticipation.EligibleEther)
+	logger.Errorf("latestBurnData.TotalBurned: %v", latestBurnData.TotalBurned)
+	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - (uint64(depositContractBalanceGWei.InexactFloat64()) + uint64(latestBurnData.TotalBurned))
 	amount := new(big.Int).Mul(new(big.Int).SetUint64(totalSupply), big.NewInt(params.GWei))
 
 	data := types.SupplyResponse{
