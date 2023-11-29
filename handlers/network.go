@@ -69,8 +69,8 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 
 	latestBurnData := services.LatestBurnData()
 	address := common.FromHex(strings.TrimPrefix(utils.Config.Chain.Config.DepositContractAddress, "0x"))
-	addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address)
 
+	addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address)
 	if err != nil {
 		logger.Errorf("error retieving balances for %v route: %v", r.URL.String(), err)
 		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
