@@ -34,12 +34,12 @@ func ResolveEnsDomain(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Warnf("failed to resolve ens %v: %v", search, err)
-		sendErrorResponse(w, r.URL.String(), "failed to resolve ens")
+		SendBadRequestResponse(w, r.URL.String(), "failed to resolve ens")
 		return
 	}
 
 	j := json.NewEncoder(w)
-	sendOKResponse(j, r.URL.String(), []interface{}{data})
+	SendOKResponse(j, r.URL.String(), []interface{}{data})
 }
 
 func GetEnsDomain(search string) (*types.EnsDomainResponse, error) {
@@ -47,19 +47,26 @@ func GetEnsDomain(search string) (*types.EnsDomainResponse, error) {
 	var returnError error
 
 	if utils.IsValidEnsDomain(search) {
-		data.Domain = search
-
-		cacheKey := fmt.Sprintf("%d:ens:address:%v", utils.Config.Chain.Config.DepositChainID, search)
+		cacheKey := fmt.Sprintf("%d:ens:address:%v", utils.Config.Chain.ClConfig.DepositChainID, search)
 
 		if address, err := cache.TieredCache.GetStringWithLocalTimeout(cacheKey, time.Minute); err == nil && len(address) > 0 {
 			data.Address = address
 			return data, nil
 		}
+
 		address, err := db.GetAddressForEnsName(search)
 		if err != nil {
+			data.Domain = search
 			return data, err // We want to return the data if it was a valid domain even if there was an error getting the address from bigtable. A valid domain might be enough for the caller.
 		}
 		data.Address = address.Hex()
+
+		name, err := db.GetEnsNameForAddress(*address)
+		if err != nil {
+			return data, err // We want to return the data if it was a valid address even if there was an error getting the domain from bigtable. A valid address might be enough for the caller.
+		}
+		data.Domain = *name
+
 		err = cache.TieredCache.SetString(cacheKey, data.Address, time.Minute)
 		if err != nil {
 			logger.Errorf("error caching ens address: %v", err)
@@ -68,7 +75,7 @@ func GetEnsDomain(search string) (*types.EnsDomainResponse, error) {
 	} else if utils.IsValidEth1Address(search) {
 		data.Address = search
 
-		cacheKey := fmt.Sprintf("%d:ens:domain:%v", utils.Config.Chain.Config.DepositChainID, search)
+		cacheKey := fmt.Sprintf("%d:ens:domain:%v", utils.Config.Chain.ClConfig.DepositChainID, search)
 
 		if domain, err := cache.TieredCache.GetStringWithLocalTimeout(cacheKey, time.Minute); err == nil && len(domain) > 0 {
 			data.Domain = domain

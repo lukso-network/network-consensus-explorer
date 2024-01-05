@@ -66,7 +66,7 @@ function showValidatorHist(index) {
     details: false,
     pagingType: "simple",
     pageLength: 10,
-    ajax: "/validator/" + index + "/history",
+    ajax: dataTableLoader("/validator/" + index + "/history"),
     language: {
       searchPlaceholder: "Search by Epoch Number",
       search: "",
@@ -297,7 +297,7 @@ function showProposedHistoryTable() {
   }).then((res) => {
     res.json().then(function (data) {
       let proposedHistTableData = []
-      for (let item of data) {
+      for (let item of data.data) {
         proposedHistTableData.push([item[0], item[1], [item[2], item[3], item[4]]])
       }
       renderProposedHistoryTable(proposedHistTableData)
@@ -976,6 +976,9 @@ $(document).ready(function () {
         method: "GET",
       }).then((res) => {
         res.json().then((data) => {
+          if (Object.keys(data).length === 0) {
+            return
+          }
           let sum = 0.0
           for (let eff of data) {
             sum += eff
@@ -1381,7 +1384,7 @@ $(document).ready(function () {
 
 function createIncomeChart(income, executionIncomeHistory) {
   executionIncomeHistory = executionIncomeHistory || []
-  const incomeChartOptions = getIncomeChartOptions(income, executionIncomeHistory, "Daily Income for all Validators", 627, currency)
+  const incomeChartOptions = getIncomeChartOptions(income, executionIncomeHistory, "Daily Income for all Validators", 627)
   incomeChart = Highcharts.stockChart("balance-chart", incomeChartOptions)
 }
 

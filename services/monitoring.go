@@ -110,7 +110,7 @@ func startElDataMonitoringService() {
 		}
 		blockBlocksTable, err := db.BigtableClient.GetBlockFromBlocksTable(uint64(numberBlocksTable))
 		if err != nil {
-			errorMsg := fmt.Errorf("error: could not retrieve latest block from the blocks table: %v", err)
+			errorMsg := fmt.Errorf("error: could not retrieve latest block (%d) from the blocks table: %v", numberBlocksTable, err)
 			ReportStatus(name, errorMsg.Error(), nil)
 			continue
 		}
@@ -188,7 +188,7 @@ func startApiMonitoringService() {
 		resp, err := client.Get(url)
 		if err != nil {
 			utils.LogError(err, "getting client error", 0, errFields)
-			ReportStatus(name, err.Error(), nil)
+			ReportStatus(name, strings.ReplaceAll(err.Error(), utils.Config.Monitoring.ApiKey, ""), nil)
 			continue
 		}
 
@@ -227,7 +227,7 @@ func startAppMonitoringService() {
 		resp, err := client.Post(url, "application/json", strings.NewReader(`{"indicesOrPubkey": "1,2"}`))
 		if err != nil {
 			utils.LogError(err, "POST to dashboard URL error", 0, errFields)
-			ReportStatus(name, err.Error(), nil)
+			ReportStatus(name, strings.ReplaceAll(err.Error(), utils.Config.Monitoring.ApiKey, ""), nil)
 			continue
 		}
 
@@ -263,7 +263,7 @@ func startServicesMonitoringService() {
 		"ethstoreExporter":          time.Minute * 60,
 		"statsUpdater":              time.Minute * 30,
 		"poolsUpdater":              time.Minute * 30,
-		"epochExporter":             time.Minute * 15,
+		"slotExporter":              time.Minute * 15,
 		"statistics":                time.Minute * 90,
 		"ethStoreStatistics":        time.Minute * 15,
 		"lastExportedStatisticDay":  time.Minute * 15,

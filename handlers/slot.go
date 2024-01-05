@@ -41,6 +41,7 @@ func Slot(w http.ResponseWriter, r *http.Request) {
 		"slot/attesterSlashing.html",
 		"slot/proposerSlashing.html",
 		"slot/exits.html",
+		"slot/blobs.html",
 		"components/timestamp.html",
 		"slot/overview.html",
 		"slot/execTransactions.html")
@@ -84,12 +85,12 @@ func Slot(w http.ResponseWriter, r *http.Request) {
 		}
 		if err != nil {
 			logger.Errorf("error retrieving entry count of given block or state data: %v", err)
-			http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	blockPageData, err := GetSlotPageData(uint64(blockSlot))
+	slotPageData, err := GetSlotPageData(uint64(blockSlot))
 	if err == sql.ErrNoRows {
 		slot := uint64(blockSlot)
 		//Slot not in database -> Show future block
@@ -127,17 +128,20 @@ func Slot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if blockPageData.ExecBlockNumber.Int64 != 0 && blockPageData.Status == 1 {
+	// if the network started with PoS, slot 0 will contain block 0; checking for blockPageData.ExecBlockNumber.Int64 > 0 does not work in this case
+	isMergedSlot0 := slotPageData.Slot == 0 && slotPageData.Epoch >= utils.Config.Chain.ClConfig.BellatrixForkEpoch
+
+	if slotPageData.Status == 1 && (slotPageData.ExecBlockNumber.Int64 > 0 || isMergedSlot0) {
 		// slot has corresponding execution block, fetch execution data
-		eth1BlockPageData, err := GetExecutionBlockPageData(uint64(blockPageData.ExecBlockNumber.Int64), 10)
+		eth1BlockPageData, err := GetExecutionBlockPageData(uint64(slotPageData.ExecBlockNumber.Int64), 10)
 		// if err != nil, simply show slot view without block
 		if err == nil {
-			blockPageData.ExecutionData = eth1BlockPageData
-			blockPageData.ExecutionData.IsValidMev = blockPageData.IsValidMev
+			slotPageData.ExecutionData = eth1BlockPageData
+			slotPageData.ExecutionData.IsValidMev = slotPageData.IsValidMev
 		}
 	}
-	data := InitPageData(w, r, "blockchain", fmt.Sprintf("/slot/%v", blockPageData.Slot), fmt.Sprintf("Slot %v", slotOrHash), slotTemplateFiles)
-	data.Data = blockPageData
+	data := InitPageData(w, r, "blockchain", fmt.Sprintf("/slot/%v", slotPageData.Slot), fmt.Sprintf("Slot %v", slotOrHash), slotTemplateFiles)
+	data.Data = slotPageData
 
 	if utils.IsApiRequest(r) {
 		w.Header().Set("Content-Type", "application/json")
@@ -208,10 +212,10 @@ func getAttestationsData(slot uint64, onlyFirst bool) ([]*types.BlockPageAttesta
 
 func GetSlotPageData(blockSlot uint64) (*types.BlockPageData, error) {
 	latestFinalizedEpoch := services.LatestFinalizedEpoch()
-	blockPageData := types.BlockPageData{}
-	blockPageData.Mainnet = utils.Config.Chain.Config.ConfigName == "mainnet"
+	slotPageData := types.BlockPageData{}
+	slotPageData.Mainnet = utils.Config.Chain.ClConfig.ConfigName == "mainnet"
 	// for the first slot in an epoch the previous epoch defines the finalized state
-	err := db.ReaderDb.Get(&blockPageData, `
+	err := db.ReaderDb.Get(&slotPageData, `
 		SELECT
 			blocks.epoch,
 			(COALESCE(epochs.epoch, 0) <= $3) AS epoch_finalized,
@@ -259,22 +263,22 @@ func GetSlotPageData(blockSlot uint64) (*types.BlockPageData, error) {
 			epoch_participation_rate
 		ORDER BY blocks.blockroot DESC, blocks.status ASC limit 1
 		`,
-		blockSlot, utils.Config.Chain.Config.SlotsPerEpoch, latestFinalizedEpoch)
+		blockSlot, utils.Config.Chain.ClConfig.SlotsPerEpoch, latestFinalizedEpoch)
 	if err != nil {
 		return nil, err
 	}
-	blockPageData.Slot = uint64(blockSlot)
+	slotPageData.Slot = uint64(blockSlot)
 
-	blockPageData.Ts = utils.SlotToTime(blockPageData.Slot)
-	if blockPageData.ExecTimestamp.Valid {
-		blockPageData.ExecTime = time.Unix(int64(blockPageData.ExecTimestamp.Int64), 0)
+	slotPageData.Ts = utils.SlotToTime(slotPageData.Slot)
+	if slotPageData.ExecTimestamp.Valid {
+		slotPageData.ExecTime = time.Unix(int64(slotPageData.ExecTimestamp.Int64), 0)
 	}
-	blockPageData.SlashingsCount = blockPageData.AttesterSlashingsCount + blockPageData.ProposerSlashingsCount
+	slotPageData.SlashingsCount = slotPageData.AttesterSlashingsCount + slotPageData.ProposerSlashingsCount
 
-	blockPageData.NextSlot = blockPageData.Slot + 1
-	blockPageData.PreviousSlot = blockPageData.Slot - 1
+	slotPageData.NextSlot = slotPageData.Slot + 1
+	slotPageData.PreviousSlot = slotPageData.Slot - 1
 
-	blockPageData.Attestations, err = getAttestationsData(blockPageData.Slot, true)
+	slotPageData.Attestations, err = getAttestationsData(slotPageData.Slot, true)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +287,7 @@ func GetSlotPageData(blockSlot uint64) (*types.BlockPageData, error) {
 		SELECT validators
 		FROM blocks_attestations
 		WHERE beaconblockroot = $1`,
-		blockPageData.BlockRoot)
+		slotPageData.BlockRoot)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving block votes data: %v", err)
 	}
@@ -307,15 +311,15 @@ func GetSlotPageData(blockSlot uint64) (*types.BlockPageData, error) {
 			}
 		}
 	}
-	blockPageData.VotingValidatorsCount = uint64(len(votesPerValidator))
-	blockPageData.VotesCount = uint64(votesCount)
+	slotPageData.VotingValidatorsCount = uint64(len(votesPerValidator))
+	slotPageData.VotesCount = uint64(votesCount)
 
-	err = db.ReaderDb.Select(&blockPageData.VoluntaryExits, "SELECT validatorindex, signature FROM blocks_voluntaryexits WHERE block_slot = $1", blockPageData.Slot)
+	err = db.ReaderDb.Select(&slotPageData.VoluntaryExits, "SELECT validatorindex, signature FROM blocks_voluntaryexits WHERE block_slot = $1", slotPageData.Slot)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving block deposit data: %v", err)
 	}
 
-	err = db.ReaderDb.Select(&blockPageData.AttesterSlashings, `
+	err = db.ReaderDb.Select(&slotPageData.AttesterSlashings, `
 		SELECT
 			block_slot,
 			block_index,
@@ -338,12 +342,12 @@ func GetSlotPageData(blockSlot uint64) (*types.BlockPageData, error) {
 			attestation2_target_epoch,
 			attestation2_target_root
 		FROM blocks_attesterslashings
-		WHERE block_slot = $1`, blockPageData.Slot)
+		WHERE block_slot = $1`, slotPageData.Slot)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving block attester slashings data: %v", err)
 	}
-	if len(blockPageData.AttesterSlashings) > 0 {
-		for _, slashing := range blockPageData.AttesterSlashings {
+	if len(slotPageData.AttesterSlashings) > 0 {
+		for _, slashing := range slotPageData.AttesterSlashings {
 			inter := intersect.Simple(slashing.Attestation1Indices, slashing.Attestation2Indices)
 
 			for _, i := range inter {
@@ -352,71 +356,22 @@ func GetSlotPageData(blockSlot uint64) (*types.BlockPageData, error) {
 		}
 	}
 
-	err = db.ReaderDb.Select(&blockPageData.ProposerSlashings, "SELECT block_slot, block_index, block_root, proposerindex, header1_slot, header1_parentroot, header1_stateroot, header1_bodyroot, header1_signature, header2_slot, header2_parentroot, header2_stateroot, header2_bodyroot, header2_signature FROM blocks_proposerslashings WHERE block_slot = $1", blockPageData.Slot)
+	err = db.ReaderDb.Select(&slotPageData.BlobSidecars, `SELECT block_slot, block_root, index, kzg_commitment, kzg_proof, blob_versioned_hash FROM blocks_blob_sidecars WHERE block_root = $1`, slotPageData.BlockRoot)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving block blob sidecars (slot: %d, blockroot: %#x): %w", slotPageData.Slot, slotPageData.BlockRoot, err)
+	}
+
+	err = db.ReaderDb.Select(&slotPageData.ProposerSlashings, "SELECT block_slot, block_index, block_root, proposerindex, header1_slot, header1_parentroot, header1_stateroot, header1_bodyroot, header1_signature, header2_slot, header2_parentroot, header2_stateroot, header2_bodyroot, header2_signature FROM blocks_proposerslashings WHERE block_slot = $1", slotPageData.Slot)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving block proposer slashings data: %v", err)
 	}
 
-	// TODO: fix blockPageData data type to include SyncCommittee
-	err = db.ReaderDb.Select(&blockPageData.SyncCommittee, "SELECT validatorindex FROM sync_committees WHERE period = $1 ORDER BY committeeindex", utils.SyncPeriodOfEpoch(blockPageData.Epoch))
+	err = db.ReaderDb.Select(&slotPageData.SyncCommittee, "SELECT validatorindex FROM sync_committees WHERE period = $1 ORDER BY committeeindex", utils.SyncPeriodOfEpoch(slotPageData.Epoch))
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving sync-committee of block %v: %v", blockPageData.Slot, err)
+		return nil, fmt.Errorf("error retrieving sync-committee of block %v: %v", slotPageData.Slot, err)
 	}
 
-	// old code retrieving txs from postgres db
-	/* if retrieveTxsFromDb {
-			// retrieve transactions from db
-			var transactions []*types.BlockPageTransaction
-			rows, err = db.ReaderDb.Query(`
-				SELECT
-	    		block_slot,
-	    		block_index,
-	    		txhash,
-	    		nonce,
-	    		gas_price,
-	    		gas_limit,
-	    		sender,
-	    		recipient,
-	    		amount,
-	    		payload
-				FROM blocks_transactions
-				WHERE block_slot = $1
-				ORDER BY block_index`,
-				blockPageData.Slot)
-			if err != nil {
-				return nil, fmt.Errorf("error retrieving block transaction data: %v", err)
-			}
-			defer rows.Close()
-
-			for rows.Next() {
-				tx := &types.BlockPageTransaction{}
-
-				err := rows.Scan(
-					&tx.BlockSlot,
-					&tx.BlockIndex,
-					&tx.TxHash,
-					&tx.AccountNonce,
-					&tx.Price,
-					&tx.GasLimit,
-					&tx.Sender,
-					&tx.Recipient,
-					&tx.Amount,
-					&tx.Payload,
-				)
-				if err != nil {
-					return nil, fmt.Errorf("error scanning block transaction data: %v", err)
-				}
-				var amount, price big.Int
-				amount.SetBytes(tx.Amount)
-				price.SetBytes(tx.Price)
-				tx.AmountPretty = ToEth(&amount)
-				tx.PricePretty = ToGWei(&amount)
-				transactions = append(transactions, tx)
-			}
-			blockPageData.Transactions = transactions
-		}
-	*/
-	return &blockPageData, nil
+	return &slotPageData, nil
 }
 
 // SlotDepositData returns the deposits for a specific slot
@@ -733,8 +688,8 @@ func BlockTransactionsData(w http.ResponseWriter, r *http.Request) {
 			Method:        methodFormatted,
 			FromFormatted: v.FromFormatted,
 			ToFormatted:   v.ToFormatted,
-			Value:         utils.FormatAmountFormatted(v.Value, "LYXt", 5, 0, true, true, false),
-			Fee:           utils.FormatAmountFormatted(v.Fee, "LYXt", 5, 0, true, true, false),
+			Value:         utils.FormatAmountFormatted(v.Value, utils.Config.Frontend.ElCurrency, 5, 0, true, true, false),
+			Fee:           utils.FormatAmountFormatted(v.Fee, utils.Config.Frontend.ElCurrency, 5, 0, true, true, false),
 			GasPrice:      utils.FormatAmountFormatted(v.GasPrice, "GWei", 5, 0, true, true, false),
 		}
 	}
@@ -812,7 +767,7 @@ func SlotAttestationsData(w http.ResponseWriter, r *http.Request) {
 func SlotWithdrawalData(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	vars := mux.Vars(r)
-
+	currency := GetCurrency(r)
 	slot, err := strconv.ParseUint(vars["slot"], 10, 64)
 	if err != nil || slot > math.MaxInt32 {
 		logger.Warnf("error parsing slot url parameter %v: %v", vars["slot"], err)
@@ -826,20 +781,18 @@ func SlotWithdrawalData(w http.ResponseWriter, r *http.Request) {
 
 	tableData := make([][]interface{}, 0, len(withdrawals))
 	for _, w := range withdrawals {
-		// logger.Infof("w: %+v", w)
 		tableData = append(tableData, []interface{}{
 			template.HTML(fmt.Sprintf("%v", w.Index)),
-			template.HTML(fmt.Sprintf("%v", utils.FormatValidator(w.ValidatorIndex))),
-			template.HTML(fmt.Sprintf("%v", utils.FormatAddress(w.Address, nil, "", false, false, true))),
-			template.HTML(fmt.Sprintf("%v", utils.FormatAmount(new(big.Int).Mul(new(big.Int).SetUint64(w.Amount), big.NewInt(1e9)), "LYXt", 6))),
+			utils.FormatValidator(w.ValidatorIndex),
+			utils.FormatAddress(w.Address, nil, "", false, false, true),
+			utils.FormatClCurrency(w.Amount, currency, 6, true, false, false, true),
 		})
 	}
 
 	data := &types.DataTableResponse{
 		Draw:         1,
 		RecordsTotal: uint64(len(withdrawals)),
-		// RecordsFiltered: uint64(len(withdrawals)),
-		Data: tableData,
+		Data:         tableData,
 	}
 
 	err = json.NewEncoder(w).Encode(data)
@@ -868,10 +821,10 @@ func SlotBlsChangeData(w http.ResponseWriter, r *http.Request) {
 	tableData := make([][]interface{}, 0, len(blsChange))
 	for _, c := range blsChange {
 		tableData = append(tableData, []interface{}{
-			template.HTML(fmt.Sprintf("%v", utils.FormatValidator(c.Validatorindex))),
-			template.HTML(fmt.Sprintf("%v", utils.FormatHashWithCopy(c.Signature))),
-			template.HTML(fmt.Sprintf("%v", utils.FormatHashWithCopy(c.BlsPubkey))),
-			template.HTML(fmt.Sprintf("%v", utils.FormatAddress(c.Address, nil, "", false, false, true))),
+			utils.FormatValidator(c.Validatorindex),
+			utils.FormatHashWithCopy(c.Signature),
+			utils.FormatHashWithCopy(c.BlsPubkey),
+			utils.FormatAddress(c.Address, nil, "", false, false, true),
 		})
 	}
 

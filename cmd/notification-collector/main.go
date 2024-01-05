@@ -4,6 +4,7 @@ import (
 	"eth2-exporter/cache"
 	"eth2-exporter/db"
 	"eth2-exporter/metrics"
+	"eth2-exporter/price"
 	"eth2-exporter/services"
 	"eth2-exporter/types"
 	"eth2-exporter/utils"
@@ -24,8 +25,15 @@ import (
 
 func main() {
 	configPath := flag.String("config", "", "Path to the config file, if empty string defaults will be used")
+	versionFlag := flag.Bool("version", false, "Show version and exit")
 
 	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println(version.Version)
+		fmt.Println(version.GoVersion)
+		return
+	}
 
 	cfg := &types.Config{}
 	err := utils.ReadConfig(cfg, *configPath)
@@ -36,9 +44,9 @@ func main() {
 	logrus.WithFields(logrus.Fields{
 		"config":    *configPath,
 		"version":   version.Version,
-		"chainName": utils.Config.Chain.Config.ConfigName}).Printf("starting")
+		"chainName": utils.Config.Chain.ClConfig.ConfigName}).Printf("starting")
 
-	if utils.Config.Chain.Config.SlotsPerEpoch == 0 || utils.Config.Chain.Config.SecondsPerSlot == 0 {
+	if utils.Config.Chain.ClConfig.SlotsPerEpoch == 0 || utils.Config.Chain.ClConfig.SecondsPerSlot == 0 {
 		utils.LogFatal(err, "invalid chain configuration specified, you must specify the slots per epoch, seconds per slot and genesis timestamp in the config file", 0)
 	}
 
@@ -98,7 +106,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		bt, err := db.InitBigtable(utils.Config.Bigtable.Project, utils.Config.Bigtable.Instance, fmt.Sprintf("%d", utils.Config.Chain.Config.DepositChainID), utils.Config.RedisCacheEndpoint)
+		bt, err := db.InitBigtable(utils.Config.Bigtable.Project, utils.Config.Bigtable.Instance, fmt.Sprintf("%d", utils.Config.Chain.ClConfig.DepositChainID), utils.Config.RedisCacheEndpoint)
 		if err != nil {
 			logrus.Fatalf("error connecting to bigtable: %v", err)
 		}
@@ -116,6 +124,10 @@ func main() {
 			logrus.Infof("tiered Cache initialized, latest finalized epoch: %v", services.LatestFinalizedEpoch())
 		}()
 	}
+
+	logrus.Infof("initializing prices...")
+	price.Init(utils.Config.Chain.ClConfig.DepositChainID, utils.Config.Eth1ErigonEndpoint, utils.Config.Frontend.ClCurrency, utils.Config.Frontend.ElCurrency)
+	logrus.Infof("...prices initialized")
 
 	wg.Wait()
 

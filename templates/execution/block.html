@@ -14,7 +14,7 @@
       <div class="my-3">
         <div class="d-md-flex py-2 justify-content-md-between">
           <h1 class="h4 mb-1 mb-md-0">
-            {{ if gt .PreviousBlock 0 }}
+            {{ if gt .Number 0 }}
               <a href="/block/{{ .PreviousBlock }}"><i class="fa fa-chevron-left"></i></a>
             {{ end }}
             <span class="ml-1 mr-1"><i class="fas fa-cube mr-2"></i>Block {{ .Number }}</span>
@@ -64,16 +64,16 @@
               <div class="row border-bottom p-3 mx-0">
                 <div class="col-md-2">Reward:</div>
                 <div class="col-md-10">
-                  {{ formatAmount .Reward "LYXt" 5 }}
+                  {{ formatAmount .Reward config.Frontend.ElCurrency 5 }}
                   {{ if gt (bigIntCmp .MevReward 0) 0 }}
                     +
-                    {{ formatAmount .MevReward "LYXt" 5 }}
+                    {{ formatAmount .MevReward config.Frontend.ElCurrency 5 }}
                   {{ end }}
                 </div>
               </div>
               <div class="row border-bottom p-3 mx-0">
                 <div class="col-md-2">Tx Fees:</div>
-                <div class="col-md-10">{{ formatAmount .TxFees "LYXt" 5 }}</div>
+                <div class="col-md-10">{{ formatAmount .TxFees config.Frontend.ElCurrency 5 }}</div>
               </div>
               <div class="row border-bottom p-3 mx-0">
                 <div class="col-md-2">Gas Usage:</div>
@@ -105,7 +105,7 @@
               </div>
               <div class="row border-bottom p-3 mx-0">
                 <div class="col-md-2">Burned fees:</div>
-                <div class="col-md-10">{{ formatAmount .BurnedFees "LYXt" 5 }}</div>
+                <div class="col-md-10">{{ formatAmount .BurnedFees config.Frontend.ElCurrency 5 }}</div>
               </div>
               <div class="row border-bottom p-3 mx-0">
                 <div class="col-md-2">Extra:</div>
@@ -147,7 +147,7 @@
                       <td>{{ .Number }}</td>
                       <td>{{ subUI64 $.Data.Number .Number }}</td>
                       <td>{{ .MinerFormatted }}</td>
-                      <td>{{ formatAmount .Reward "LYXt" 5 }}</td>
+                      <td>{{ formatAmount .Reward config.Frontend.ElCurrency 5 }}</td>
                       <td>{{ .Extra }}</td>
                     </tr>
                   {{ end }}
