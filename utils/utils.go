@@ -502,6 +502,7 @@ func ReadConfig(cfg *types.Config, path string) error {
 			EjectionBalance:                         mustParseUint(jr.Data.EjectionBalance),
 			MinPerEpochChurnLimit:                   mustParseUint(jr.Data.MinPerEpochChurnLimit),
 			ChurnLimitQuotient:                      mustParseUint(jr.Data.ChurnLimitQuotient),
+			MaxPerEpochActivationChurnLimit:         mustParseUint(jr.Data.MaxPerEpochActivationChurnLimit),
 			ProposerScoreBoost:                      mustParseUint(jr.Data.ProposerScoreBoost),
 			DepositChainID:                          mustParseUint(jr.Data.DepositChainID),
 			DepositNetworkID:                        mustParseUint(jr.Data.DepositNetworkID),
@@ -889,7 +890,7 @@ func IsApiRequest(r *http.Request) bool {
 
 var eth1AddressRE = regexp.MustCompile("^(0x)?[0-9a-fA-F]{40}$")
 var withdrawalCredentialsRE = regexp.MustCompile("^(0x)?00[0-9a-fA-F]{62}$")
-var withdrawalCredentialsAddressRE = regexp.MustCompile("^(0x)?010000000000000000000000[0-9a-fA-F]{40}$")
+var withdrawalCredentialsAddressRE = regexp.MustCompile("^(0x)?" + BeginningOfSetWithdrawalCredentials + "[0-9a-fA-F]{40}$")
 var eth1TxRE = regexp.MustCompile("^(0x)?[0-9a-fA-F]{64}$")
 var zeroHashRE = regexp.MustCompile("^(0x)?0+$")
 var hashRE = regexp.MustCompile("^(0x)?[0-9a-fA-F]{96}$")

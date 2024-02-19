@@ -143,7 +143,7 @@
     }
 
     .tbl-col-content {
-      max-width: 200px;
+      max-width: 210px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -245,9 +245,9 @@
                 content.innerHTML = col
                 el.appendChild(content)
                 infLoading.insertAdjacentElement("beforebegin", el)
-                drawCallback()
               }
             }
+            drawCallback()
           } else if (data.pagingToken === "") {
             infLoading.remove()
           } else if (data && data.data && data.data.length == 0) {
@@ -361,7 +361,10 @@
                   </div>
                   <div class="overview-col">
                     <span class="">
+                      <span data-toggle="tooltip" title="" data-original-title="This value is currently not available, it will be back soon">N/A <i class="far ml-1 fa-question-circle"></i></span>
+                      <!-- #TODO: BIDS-2879
                       {{ .Data.WithdrawalsSummary }}
+                      -->
                     </span>
                   </div>
                 </div>

@@ -2075,7 +2075,7 @@ func ApiValidatorBlsChange(w http.ResponseWriter, r *http.Request) {
 			Address:                  fmt.Sprintf("0x%x", d.Address),
 			Signature:                fmt.Sprintf("0x%x", d.Signature),
 			WithdrawalCredentialsOld: fmt.Sprintf("0x%x", d.WithdrawalCredentialsOld),
-			WithdrawalCredentialsNew: fmt.Sprintf("0x010000000000000000000000%x", d.Address),
+			WithdrawalCredentialsNew: fmt.Sprintf("0x"+utils.BeginningOfSetWithdrawalCredentials+"%x", d.Address),
 		})
 	}
 
@@ -3113,11 +3113,14 @@ func RegisterMobileSubscriptions(w http.ResponseWriter, r *http.Request) {
 
 	// we can ignore this error since it always returns a result object and err
 	// case is not needed on receipt insert
-	validationResult, _ := exporter.VerifyReceipt(nil, nil, verifyPackage)
+	validationResult, err := exporter.VerifyReceipt(nil, nil, verifyPackage)
+	if err != nil {
+		utils.LogError(err, "could not verify receipt %v", 0, map[string]interface{}{"receipt": verifyPackage.Receipt})
+	}
 	parsedBase.Valid = validationResult.Valid
 	parsedBase.ProductID = verifyPackage.ProductID // apple verify can change the product id
 
-	err = db.InsertMobileSubscription(nil, claims.UserID, parsedBase, parsedBase.Transaction.Type, parsedBase.Transaction.Receipt, validationResult.ExpirationDate, validationResult.RejectReason, "")
+	err = db.InsertMobileSubscription(nil, claims.UserID, parsedBase, parsedBase.Transaction.Type, verifyPackage.Receipt, validationResult.ExpirationDate, validationResult.RejectReason, "")
 	if err != nil {
 		logger.Errorf("could not save subscription data %v", err)
 		SendBadRequestResponse(w, r.URL.String(), "Can not save subscription data")

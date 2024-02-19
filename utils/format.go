@@ -31,6 +31,7 @@ import (
 )
 
 const CalculatingHint = `Calculating…`
+const BeginningOfSetWithdrawalCredentials = "010000000000000000000000"
 
 func FormatMessageToHtml(message string) template.HTML {
 	message = fmt.Sprint(strings.Replace(message, "Error: ", "", 1))
@@ -231,6 +232,9 @@ func formatCurrencyString(valIf interface{}, valueCurrency, targetCurrency strin
 		// add trailing zeros to always have the same amount of digits after the comma
 		dotIndex := strings.Index(valStr, ".")
 		if dotIndex >= 0 {
+			if !strings.Contains(amountStr, ".") {
+				amountStr += "."
+			}
 			missingZeros := digitsAfterComma - (len(amountStr) - dotIndex - 1)
 			if missingZeros > 0 {
 				amountStr += strings.Repeat("0", missingZeros)
@@ -743,7 +747,7 @@ func FormatWithdawalCredentials(hash []byte, addCopyButton bool) template.HTML {
 }
 
 func FormatAddressToWithdrawalCredentials(address []byte, addCopyButton bool) template.HTML {
-	credentials, err := hex.DecodeString("010000000000000000000000")
+	credentials, err := hex.DecodeString(BeginningOfSetWithdrawalCredentials)
 	if err != nil {
 		return "INVALID CREDENTIALS"
 	}

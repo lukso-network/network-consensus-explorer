@@ -114,9 +114,19 @@ func VerifyReceipt(googleClient *playstore.Client, appleClient *api.StoreClient,
 }
 
 func initGoogle() (*playstore.Client, error) {
-	jsonKey, err := os.ReadFile(utils.Config.Frontend.AppSubsGoogleJSONPath)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("Can not read google json key file %v", utils.Config.Frontend.AppSubsGoogleJSONPath))
+	if len(utils.Config.Frontend.AppSubsGoogleJSONPath) == 0 {
+		return nil, errors.New("google app subs json path not set")
+	}
+
+	var jsonKey []byte
+	var err error
+	if strings.Contains(utils.Config.Frontend.AppSubsGoogleJSONPath, ".json") {
+		jsonKey, err = os.ReadFile(utils.Config.Frontend.AppSubsGoogleJSONPath)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("Can not read google json key file %v", utils.Config.Frontend.AppSubsGoogleJSONPath))
+		}
+	} else {
+		jsonKey = []byte(utils.Config.Frontend.AppSubsGoogleJSONPath)
 	}
 
 	client, err := playstore.New(jsonKey)
@@ -124,10 +134,21 @@ func initGoogle() (*playstore.Client, error) {
 }
 
 func initApple() (*api.StoreClient, error) {
-	keyContent, err := os.ReadFile(utils.Config.Frontend.Apple.Certificate)
-	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("can not load apple certificate for file %v", utils.Config.Frontend.Apple.Certificate))
+	if len(utils.Config.Frontend.Apple.Certificate) == 0 {
+		return nil, errors.New("apple certificate path not set")
 	}
+
+	var keyContent []byte
+	var err error
+	if strings.Contains(utils.Config.Frontend.Apple.Certificate, "BEGIN PRIVATE KEY") {
+		keyContent = []byte(utils.Config.Frontend.Apple.Certificate)
+	} else {
+		keyContent, err = os.ReadFile(utils.Config.Frontend.Apple.Certificate)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("can not load apple certificate for file %v", utils.Config.Frontend.Apple.Certificate))
+		}
+	}
+
 	return api.NewStoreClient(&api.StoreConfig{
 		KeyContent: keyContent,                          // Loads a .p8 certificate
 		KeyID:      utils.Config.Frontend.Apple.KeyID,   // Your private key ID from App Store Connect (Ex: 2X9R4HXF34)
@@ -221,7 +242,7 @@ func verifyApple(apple *api.StoreClient, receipt *types.PremiumData) (*VerifyRes
 	if len(receipt.Receipt) > 100 {
 		transactionID, err := getLegacyAppstoreTransactionIDByReceipt(receipt.Receipt, receipt.ProductID)
 		if err != nil {
-			utils.LogError(err, "error resolving legacy appstore receipt", 0, nil)
+			utils.LogError(err, "error resolving legacy appstore receipt", 0, map[string]interface{}{"receipt": receipt.Receipt})
 			response.RejectReason = "exception_legresolve"
 			return response, err
 		}
