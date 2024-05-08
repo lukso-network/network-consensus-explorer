@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"eth2-exporter/db"
 	"eth2-exporter/mail"
+	"eth2-exporter/ratelimit"
 	"eth2-exporter/services"
 	"eth2-exporter/templates"
 	"eth2-exporter/types"
@@ -87,19 +88,18 @@ func UserSettings(w http.ResponseWriter, r *http.Request) {
 		statsSharing = false
 	}
 
-	maxDaily := utils.Config.Frontend.Ratelimits.FreeDay
-	maxMonthly := utils.Config.Frontend.Ratelimits.FreeMonth
-	if subscription.PriceID != nil {
-		if *subscription.PriceID == utils.Config.Frontend.Stripe.Sapphire {
-			maxDaily = utils.Config.Frontend.Ratelimits.SapphierDay
-			maxMonthly = utils.Config.Frontend.Ratelimits.SapphierMonth
-		} else if *subscription.PriceID == utils.Config.Frontend.Stripe.Emerald {
-			maxDaily = utils.Config.Frontend.Ratelimits.EmeraldDay
-			maxMonthly = utils.Config.Frontend.Ratelimits.EmeraldMonth
-		} else if *subscription.PriceID == utils.Config.Frontend.Stripe.Diamond {
-			maxDaily = utils.Config.Frontend.Ratelimits.DiamondDay
-			maxMonthly = utils.Config.Frontend.Ratelimits.DiamondMonth
-		}
+	rl, err := ratelimit.DBGetUserApiRateLimit(int64(user.UserID))
+	if err != nil {
+		logger.Errorf("Error retrieving the api-ratelimit for user: %v %v", user.UserID, err)
+		utils.SetFlash(w, r, "", "Error: Something went wrong.")
+		http.Redirect(w, r, "/user/settings", http.StatusSeeOther)
+		return
+	}
+
+	maxDaily := int(rl.Second * 24 * 3600)
+	maxMonthly := int(rl.Month)
+	if maxDaily > maxMonthly {
+		maxDaily = maxMonthly
 	}
 
 	userSettingsData.ApiStatistics = &types.ApiStatistics{}
@@ -1046,18 +1046,26 @@ func UserUpdatePasswordPost(w http.ResponseWriter, r *http.Request) {
 	pwdOld := r.FormValue("old-password")
 
 	currentUser := struct {
-		ID        int64  `db:"id"`
-		Email     string `db:"email"`
-		Password  string `db:"password"`
-		Confirmed bool   `db:"email_confirmed"`
+		ID                      int64  `db:"id"`
+		Email                   string `db:"email"`
+		Password                string `db:"password"`
+		Confirmed               bool   `db:"email_confirmed"`
+		PasswordResetNotAllowed bool   `db:"password_reset_not_allowed"`
 	}{}
 
-	err = db.FrontendWriterDB.Get(&currentUser, "SELECT id, email, password, email_confirmed FROM users WHERE id = $1", user.UserID)
+	err = db.FrontendWriterDB.Get(&currentUser, "SELECT id, email, password, email_confirmed, password_reset_not_allowed FROM users WHERE id = $1", user.UserID)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			logger.Errorf("error retrieving password for user %v: %v", user.UserID, err)
 		}
 		session.AddFlash("Error: Invalid password!")
+		session.Save(r, w)
+		http.Redirect(w, r, "/user/settings", http.StatusSeeOther)
+		return
+	}
+
+	if currentUser.PasswordResetNotAllowed {
+		session.AddFlash("Error: Password reset is not allowed for this account!")
 		session.Save(r, w)
 		http.Redirect(w, r, "/user/settings", http.StatusSeeOther)
 		return

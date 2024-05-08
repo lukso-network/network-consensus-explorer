@@ -739,7 +739,7 @@ func Validator(w http.ResponseWriter, r *http.Request) {
 						COALESCE(orphaned_sync_total, 0) AS orphaned_sync
 					FROM validator_stats
 					WHERE validatorindex = $1 AND day = $2`, index, lastStatsDay)
-				if err != nil {
+				if err != nil && err != sql.ErrNoRows {
 					return fmt.Errorf("error getting validator syncStats: %w", err)
 				}
 			}
