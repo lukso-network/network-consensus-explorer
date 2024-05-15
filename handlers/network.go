@@ -79,8 +79,10 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	depositContractBalanceGWei := decimal.NewFromBigInt(new(big.Int).SetBytes(addressMetadata.EthBalance.Balance), 0).DivRound(decimal.NewFromInt(params.GWei), 18)
+	// Deposit contract holds 320k LYX lost forever
+	depositContractFinalBalance := uint64(depositContractBalanceGWei.InexactFloat64()) - 320000000000000
 
-	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - (uint64(depositContractBalanceGWei.InexactFloat64()) + uint64(latestBurnData.TotalBurned))
+	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - (depositContractFinalBalance + uint64(latestBurnData.TotalBurned))
 	amount := new(big.Int).Mul(new(big.Int).SetUint64(totalSupply), big.NewInt(params.GWei))
 
 	data := types.SupplyResponse{
