@@ -35,35 +35,31 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 
 	totalAmountWithdrawn, _, err := db.GetTotalAmountWithdrawn()
 	if err != nil {
-		logger.WithError(err).Error("error getting total amount withdrawn from db")
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-
+		sendServerErrorResponse(w, r.URL.String(), "error processing request, please try again later")
+		logger.Errorf("error getting totalAmountWithdrawn data for API %v route: %v", r.URL, err)
 		return
 	}
 
 	latestFinalizedEpoch := services.LatestFinalizedEpoch()
 	if err != nil {
-		logger.WithError(err).Error("error getting LatestFinalizedEpoch")
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-
+		sendServerErrorResponse(w, r.URL.String(), "error processing request, please try again later")
+		logger.Errorf("error getting LatestFinalizedEpoch data for API %v route: %v", r.URL, err)
 		return
 	}
 
 	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.Config.DepositChainID)
 	rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
 	if err != nil {
-		logger.WithError(err).Error("new total supply Lighthouse client in monitor error")
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-
+		sendServerErrorResponse(w, r.URL.String(), "error processing request, please try again later")
+		logger.Errorf("error creating new rpc CL client instnace for API %v route: %v", r.URL, err)
 		return
 	}
 
 	// Get the total staked gwei that was active (i.e., able to vote) during the latestFinalizedEpoch epoch
 	validatorParticipation, err := rpcClient.GetValidatorParticipation(latestFinalizedEpoch)
 	if err != nil {
-		logger.WithError(err).Error("error getting GetValidatorParticipation")
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-
+		sendServerErrorResponse(w, r.URL.String(), "error processing request, please try again later")
+		logger.Errorf("error getting GetValidatorParticipation data for API %v route: %v", r.URL, err)
 		return
 	}
 
@@ -72,9 +68,8 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 
 	addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address)
 	if err != nil {
-		logger.Errorf("error retieving balances for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-
+		sendServerErrorResponse(w, r.URL.String(), "error processing request, please try again later")
+		logger.Errorf("error getting GetMetadataForAddress data for API %v route: %v", r.URL, err)
 		return
 	}
 
@@ -95,10 +90,7 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		logger.WithError(err).WithField("route", r.URL.String()).Error("error encoding json response")
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-
-		return
+		sendServerErrorResponse(w, r.URL.String(), "could not serialize data results")
+		logger.Errorf("error serializing json data for API %v route: %v", r.URL, err)
 	}
-
 }
