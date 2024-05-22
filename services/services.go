@@ -7,13 +7,16 @@ import (
 	"eth2-exporter/cache"
 	"eth2-exporter/db"
 	"eth2-exporter/price"
+	"eth2-exporter/rpc"
 	"eth2-exporter/types"
 	"eth2-exporter/utils"
 	"fmt"
+	"github.com/ethereum/go-ethereum/params"
 	"html/template"
 	"math"
 	"math/big"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -86,6 +89,9 @@ func Init() {
 
 	ready.Add(1)
 	go latestExportedStatisticDayUpdater(ready)
+
+	ready.Add(1)
+	go latestTotalSupplyUpdater(ready)
 
 	ready.Wait()
 }
@@ -394,6 +400,9 @@ func epochUpdater(wg *sync.WaitGroup) {
 				firstRun = false
 			}
 		}
+
+		// latest exported total supply
+
 		ReportStatus("epochUpdater", "Running", nil)
 		time.Sleep(time.Second)
 	}
@@ -1698,6 +1707,72 @@ func latestExportedStatisticDayUpdater(wg *sync.WaitGroup) {
 	}
 }
 
+func latestTotalSupplyUpdater(wg *sync.WaitGroup) {
+	firstRun := true
+	for {
+		genesisTotalSupply := utils.Config.Chain.GenesisTotalSupply
+
+		totalAmountWithdrawn, _, err := db.GetTotalAmountWithdrawn()
+		if err != nil {
+			logger.Errorf("error getting total amount withdrawn data: %v", err)
+			time.Sleep(time.Second * 30)
+			continue
+		}
+
+		latestData := LatestState()
+		if err != nil {
+			logger.Errorf("error getting latest state data: %v", err)
+			time.Sleep(time.Second * 30)
+			continue
+		}
+
+		chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.Config.DepositChainID)
+		rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
+		if err != nil {
+			logger.Errorf("error creating new rpc CL client instance: %v", err)
+			time.Sleep(time.Second * 30)
+			continue
+		}
+
+		// Get the total staked gwei that was active (i.e., able to vote) during the latestFinalizedEpoch epoch
+		validatorParticipation, err := rpcClient.GetValidatorParticipation(latestData.CurrentFinalizedEpoch)
+		if err != nil {
+			logger.Errorf("error getting GetValidatorParticipation data: %v", err)
+			time.Sleep(time.Second * 30)
+			continue
+		}
+
+		latestBurnData := LatestBurnData()
+		address := common.FromHex(strings.TrimPrefix(utils.Config.Chain.Config.DepositContractAddress, "0x"))
+
+		addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address)
+		if err != nil {
+			logger.Errorf("error getting GetMetadataForAddress data: %v", err)
+			time.Sleep(time.Second * 30)
+			continue
+		}
+
+		depositContractBalanceGWei := decimal.NewFromBigInt(new(big.Int).SetBytes(addressMetadata.EthBalance.Balance), 0).DivRound(decimal.NewFromInt(params.GWei), 18)
+
+		// Deposit contract holds 320k LYX lost forever, so we reduce by 320000000000000 GWei
+		totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - (uint64(depositContractBalanceGWei.InexactFloat64()) + uint64(latestBurnData.TotalBurned) + uint64(320000000000000))
+		amount := new(big.Int).Mul(new(big.Int).SetUint64(totalSupply), big.NewInt(params.GWei))
+
+		cacheKey := fmt.Sprintf("%d:frontend:latestTotalSupply", utils.Config.Chain.Config.DepositChainID)
+		err = cache.TieredCache.SetString(cacheKey, amount.String(), time.Hour*24)
+		if err != nil {
+			logger.Errorf("error caching last total supply: %v", err)
+		}
+		if firstRun {
+			firstRun = false
+			wg.Done()
+			logger.Info("initialized last total supply updater")
+		}
+		ReportStatus("latestTotalSupply", "Running", nil)
+		time.Sleep(time.Second * 768)
+	}
+}
+
 // LatestExportedStatisticDay will return the last exported day in the validator_stats table
 func LatestExportedStatisticDay() uint64 {
 	cacheKey := fmt.Sprintf("%d:frontend:lastExportedStatisticDay", utils.Config.Chain.Config.DepositChainID)
@@ -1709,4 +1784,16 @@ func LatestExportedStatisticDay() uint64 {
 	}
 	wanted, _ := db.GetLastExportedStatisticDay()
 	return wanted
+}
+
+// LatestTotalSupply will return the last total supply from cache
+func LatestTotalSupply() (string, error) {
+	cacheKey := fmt.Sprintf("%d:frontend:latestTotalSupply", utils.Config.Chain.Config.DepositChainID)
+
+	if totalSupply, err := cache.TieredCache.GetStringWithLocalTimeout(cacheKey, time.Second*5); err == nil {
+		return totalSupply, nil
+	} else {
+		logger.Errorf("error retrieving last total supply data from cache: %v", err)
+		return "", err
+	}
 }
