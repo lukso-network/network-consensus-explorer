@@ -1729,7 +1729,7 @@ func latestTotalSupplyUpdater(wg *sync.WaitGroup) {
 		chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.Config.DepositChainID)
 		rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
 		if err != nil {
-			logger.Errorf("error creating new rpc CL client instnace: %v", err)
+			logger.Errorf("error creating new rpc CL client instance: %v", err)
 			time.Sleep(time.Second * 30)
 			continue
 		}
@@ -1766,7 +1766,7 @@ func latestTotalSupplyUpdater(wg *sync.WaitGroup) {
 		if firstRun {
 			firstRun = false
 			wg.Done()
-			logger.Info("initialized  last total supply updater")
+			logger.Info("initialized last total supply updater")
 		}
 		ReportStatus("latestTotalSupply", "Running", nil)
 		time.Sleep(time.Second * 768)
