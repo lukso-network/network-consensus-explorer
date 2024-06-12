@@ -163,16 +163,6 @@ func ApiHealthzLoadbalancer(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "OK. Last epoch is from %v ago", time.Since(utils.EpochToTime(lastEpoch)))
 }
 
-// ApiEthStoreDay godoc
-// @Summary Get ETH.STORE® reference rate for a specified beaconchain-day or the latest day
-// @Description ETH.STORE® represents the average financial return validators on the Ethereum network have achieved in a 24-hour period.
-// @Description For each 24-hour period the datapoint is denoted by the number of days that have passed since genesis for that period (= beaconchain-day)
-// @Description See https://github.com/gobitfly/eth.store for further information.
-// @Produce json
-// @Param day path string true "The beaconchain-day (periods of <(24 * 60 * 60) // SlotsPerEpoch // SecondsPerSlot> epochs) to get the the ETH.STORE® for. Must be a number or the string 'latest'."
-// @Success 200 {object} types.ApiResponse
-// @Failure 400 {object} types.ApiResponse
-// @Router /api/v1/ethstore/{day} [get]
 func ApiEthStoreDay(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -277,7 +267,7 @@ func ApiEpoch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.ReaderDb.Query(`SELECT attestationscount, attesterslashingscount, averagevalidatorbalance, blockscount, depositscount, eligibleether, epoch, (epoch <= $2) AS finalized, globalparticipationrate, proposerslashingscount, rewards_exported, totalvalidatorbalance, validatorscount, voluntaryexitscount, votedether, withdrawalcount, 
+	rows, err := db.ReaderDb.Query(`SELECT attestationscount, attesterslashingscount, averagevalidatorbalance, blockscount, depositscount, eligibleether, epoch, (epoch <= $2) AS finalized, globalparticipationrate, proposerslashingscount, rewards_exported, totalvalidatorbalance, validatorscount, voluntaryexitscount, votedether, COALESCE(withdrawalcount,0) as withdrawalcount, 
 		(SELECT COUNT(*) FROM blocks WHERE epoch = $1 AND status = '0') as scheduledblocks,
 		(SELECT COUNT(*) FROM blocks WHERE epoch = $1 AND status = '1') as proposedblocks,
 		(SELECT COUNT(*) FROM blocks WHERE epoch = $1 AND status = '2') as missedblocks,
@@ -335,7 +325,7 @@ func ApiEpochSlots(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, err := db.ReaderDb.Query("SELECT attestationscount, attesterslashingscount, blockroot, depositscount, epoch, eth1data_blockhash, eth1data_depositcount, eth1data_depositroot, exec_base_fee_per_gas, exec_block_hash, exec_block_number, exec_extra_data, exec_fee_recipient, exec_gas_limit, exec_gas_used, exec_logs_bloom, exec_parent_hash, exec_random, exec_receipts_root, exec_state_root, exec_timestamp, exec_transactions_count, graffiti, graffiti_text, parentroot, proposer, proposerslashingscount, randaoreveal, signature, slot, stateroot, status, syncaggregate_bits, syncaggregate_participation, syncaggregate_signature, voluntaryexitscount, withdrawalcount FROM blocks WHERE epoch = $1 ORDER BY slot", epoch)
+	rows, err := db.ReaderDb.Query("SELECT attestationscount, attesterslashingscount, blockroot, depositscount, epoch, eth1data_blockhash, eth1data_depositcount, eth1data_depositroot, exec_base_fee_per_gas, exec_block_hash, exec_block_number, exec_extra_data, exec_fee_recipient, exec_gas_limit, exec_gas_used, exec_logs_bloom, exec_parent_hash, exec_random, exec_receipts_root, exec_state_root, exec_timestamp, COALESCE(exec_transactions_count,0) as exec_transactions_count, graffiti, graffiti_text, parentroot, proposer, proposerslashingscount, randaoreveal, signature, slot, stateroot, status, syncaggregate_bits, syncaggregate_participation, syncaggregate_signature, voluntaryexitscount, COALESCE(withdrawalcount,0) as withdrawalcount FROM blocks WHERE epoch = $1 ORDER BY slot", epoch)
 	if err != nil {
 		sendServerErrorResponse(w, r.URL.String(), "could not retrieve db results")
 		return
@@ -414,7 +404,7 @@ func ApiSlots(w http.ResponseWriter, r *http.Request) {
 		blocks.attesterslashingscount,
 		blocks.attestationscount,
 		blocks.depositscount,
-		blocks.withdrawalcount, 
+		COALESCE(withdrawalcount,0) as withdrawalcount, 
 		blocks.voluntaryexitscount,
 		blocks.proposer,
 		blocks.status,
@@ -2899,6 +2889,9 @@ func getTokenByCode(w http.ResponseWriter, r *http.Request) {
 		pkg.Package = "standard"
 	}
 
+	// BIDS-3049 mobile app uses v1 package ids only
+	pkg.Package = utils.MapProductV2ToV1(pkg.Package)
+
 	var theme string = ""
 	if pkg.Store == "ethpool" {
 		theme = "ethpool"
@@ -2952,6 +2945,9 @@ func getTokenByRefresh(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		pkg.Package = "standard"
 	}
+
+	// BIDS-3049 mobile app uses v1 package ids only
+	pkg.Package = utils.MapProductV2ToV1(pkg.Package)
 
 	var theme string = ""
 	if pkg.Store == "ethpool" {
@@ -3088,6 +3084,11 @@ func RegisterMobileSubscriptions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if parsedBase.ProductID == "plankton" {
+		SendBadRequestResponse(w, r.URL.String(), "old product")
+		return
+	}
+
 	// Only allow ios and android purchases to be registered via this endpoint
 	if parsedBase.Transaction.Type != "ios-appstore" && parsedBase.Transaction.Type != "android-playstore" {
 		SendBadRequestResponse(w, r.URL.String(), "invalid transaction type")
@@ -3172,13 +3173,36 @@ func getUserPremium(r *http.Request) PremiumUser {
 
 func GetUserPremiumByPackage(pkg string) PremiumUser {
 	result := PremiumUser{
-		Package:                "whale",
+		Package:                "standard",
 		MaxValidators:          300,
 		MaxStats:               43200,
 		MaxNodes:               10,
 		WidgetSupport:          false,
 		NotificationThresholds: false,
 		NoAds:                  true,
+	}
+
+	pkg = utils.MapProductV2ToV1(pkg)
+
+	if pkg == "" || pkg == "standard" {
+		return result
+	}
+
+	result.Package = pkg
+	result.MaxStats = 43200
+	result.NotificationThresholds = true
+	result.NoAds = true
+
+	if result.Package != "plankton" {
+		result.WidgetSupport = true
+	}
+
+	if result.Package == "goldfish" {
+		result.MaxNodes = 2
+	}
+	if result.Package == "whale" {
+		result.MaxValidators = 300
+		result.MaxNodes = 10
 	}
 
 	return result
