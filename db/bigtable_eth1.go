@@ -3,16 +3,10 @@ package db
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"eth2-exporter/cache"
-	"eth2-exporter/erc1155"
-	"eth2-exporter/erc20"
-	"eth2-exporter/erc721"
-	"eth2-exporter/rpc"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"log"
 	"math/big"
@@ -20,6 +14,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/cache"
+	"github.com/gobitfly/eth2-beaconchain-explorer/erc1155"
+	"github.com/gobitfly/eth2-beaconchain-explorer/erc20"
+	"github.com/gobitfly/eth2-beaconchain-explorer/erc721"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/rpc"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"strconv"
 
@@ -121,6 +124,11 @@ func (bigtable *Bigtable) SaveBlock(block *types.Eth1Block) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_save_block").Observe(time.Since(startTime).Seconds())
+	}()
+
 	encodedBc, err := proto.Marshal(block)
 
 	if err != nil {
@@ -217,6 +225,11 @@ func (bigtable *Bigtable) GetLastBlockInBlocksTable() (int, error) {
 	})
 	defer tmr.Stop()
 
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_get_last_block_in_blocks_table").Observe(time.Since(startTime).Seconds())
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 	redisKey := bigtable.chainId + ":lastBlockInBlocksTable"
@@ -246,6 +259,11 @@ func (bigtable *Bigtable) GetLastBlockInBlocksTable() (int, error) {
 }
 
 func (bigtable *Bigtable) SetLastBlockInBlocksTable(lastBlock int64) error {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_set_last_block_in_blocks_table").Observe(time.Since(startTime).Seconds())
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
 	redisKey := bigtable.chainId + ":lastBlockInBlocksTable"
@@ -296,6 +314,11 @@ func (bigtable *Bigtable) GetLastBlockInDataTable() (int, error) {
 		logger.Warnf("%s call took longer than %v", utils.GetCurrentFuncName(), REPORT_TIMEOUT)
 	})
 	defer tmr.Stop()
+
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_get_last_block_in_data_table").Observe(time.Since(startTime).Seconds())
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
@@ -759,6 +782,10 @@ func (bigtable *Bigtable) IndexEventsWithTransformers(start, end int64, transfor
 // Column: <chainID>:B:<reversePaddedBlockNumber>
 // Cell:   nil
 func (bigtable *Bigtable) TransformBlock(block *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_block").Observe(time.Since(startTime).Seconds())
+	}()
 
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
@@ -945,6 +972,11 @@ func CalculateTxFeeFromTransaction(tx *types.Eth1Transaction, blockBaseFee *big.
 
 // TransformTx extracts transactions from bigtable more specifically from the table blocks.
 func (bigtable *Bigtable) TransformTx(blk *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_tx").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -1039,6 +1071,11 @@ func (bigtable *Bigtable) TransformTx(blk *types.Eth1Block, cache *freecache.Cac
 
 // TransformBlobTx extracts transactions from bigtable more specifically from the table blocks.
 func (bigtable *Bigtable) TransformBlobTx(blk *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_blob_tx").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -1158,6 +1195,11 @@ func decodeIsContractUpdateTs(ts gcp_bigtable.Timestamp) (block_number, tx_idx, 
 }
 
 func (bigtable *Bigtable) TransformContract(blk *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_contract").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 	contractUpdateWrites := &types.BulkMutations{}
@@ -1230,6 +1272,11 @@ func (bigtable *Bigtable) TransformContract(blk *types.Eth1Block, cache *freecac
 // Column: <chainID>:ITX:<HASH>:<paddedITXIndex>
 // Cell:   nil
 func (bigtable *Bigtable) TransformItx(blk *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_itx").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -1358,6 +1405,11 @@ func (bigtable *Bigtable) TransformItx(blk *types.Eth1Block, cache *freecache.Ca
 // Column: <chainID>:ERC20:<txHash>:<paddedLogIndex>
 // Cell:   nil
 func (bigtable *Bigtable) TransformERC20(blk *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_erc20").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -1509,6 +1561,11 @@ func (bigtable *Bigtable) TransformERC20(blk *types.Eth1Block, cache *freecache.
 // Column: <chainID>:ERC721:<txHash>:<paddedLogIndex>
 // Cell:   nil
 func (bigtable *Bigtable) TransformERC721(blk *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_erc721").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -1659,6 +1716,11 @@ func (bigtable *Bigtable) TransformERC721(blk *types.Eth1Block, cache *freecache
 // Column: <chainID>:ERC1155:<txHash>:<paddedLogIndex>
 // Cell:   nil
 func (bigtable *Bigtable) TransformERC1155(blk *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_erc1155").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -1809,6 +1871,11 @@ func (bigtable *Bigtable) TransformERC1155(blk *types.Eth1Block, cache *freecach
 // Cell:   nil
 // Example lookup: "1:I:U:ea674fdde714fd979de3edf0f56aa9716b898ec8:TIME:" returns mainnet uncles mined by ethermine in desc order
 func (bigtable *Bigtable) TransformUncle(block *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_uncle").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -1889,6 +1956,11 @@ func (bigtable *Bigtable) TransformUncle(block *types.Eth1Block, cache *freecach
 // Cell:   nil
 // Example lookup: "1:I:W:ea674fdde714fd979de3edf0f56aa9716b898ec8:TIME:" returns withdrawals received by ethermine in desc order
 func (bigtable *Bigtable) TransformWithdrawals(block *types.Eth1Block, cache *freecache.Cache) (bulkData *types.BulkMutations, bulkMetadataUpdates *types.BulkMutations, err error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_transform_withdrawals").Observe(time.Since(startTime).Seconds())
+	}()
+
 	bulkData = &types.BulkMutations{}
 	bulkMetadataUpdates = &types.BulkMutations{}
 
@@ -2223,8 +2295,11 @@ func (bigtable *Bigtable) GetAddressTransactionsTableData(address []byte, pageTo
 	})
 	defer tmr.Stop()
 
+	defaultPageToken := fmt.Sprintf("%s:I:TX:%x:%s:", bigtable.chainId, address, FILTER_TIME)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:TX:%x:%s:", bigtable.chainId, address, FILTER_TIME)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressTransactionsTableData: %s", pageToken)
 	}
 
 	transactions, keys, err := BigtableClient.GetEth1TxsForAddress(pageToken, DefaultInfScrollRows)
@@ -2363,8 +2438,11 @@ func (bigtable *Bigtable) GetAddressBlocksMinedTableData(address string, pageTok
 	})
 	defer tmr.Stop()
 
+	defaultPageToken := fmt.Sprintf("%s:I:B:%s:", bigtable.chainId, address)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:B:%s:", bigtable.chainId, address)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressBlocksMinedTableData: %s", pageToken)
 	}
 
 	blocks, lastKey, err := BigtableClient.GetEth1BlocksForAddress(pageToken, DefaultInfScrollRows)
@@ -2460,8 +2538,11 @@ func (bigtable *Bigtable) GetAddressUnclesMinedTableData(address string, pageTok
 	})
 	defer tmr.Stop()
 
+	defaultPageToken := fmt.Sprintf("%s:I:U:%s:", bigtable.chainId, address)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:U:%s:", bigtable.chainId, address)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressUnclesMinedTableData: %s", pageToken)
 	}
 
 	uncles, lastKey, err := BigtableClient.GetEth1UnclesForAddress(pageToken, DefaultInfScrollRows)
@@ -2555,8 +2636,11 @@ func (bigtable *Bigtable) GetAddressBlobTableData(address []byte, pageToken stri
 	defer tmr.Stop()
 
 	// defaults to most recent
+	defaultPageToken := fmt.Sprintf("%s:I:BTX:%x:%s:", bigtable.chainId, address, FILTER_TIME)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:BTX:%x:%s:", bigtable.chainId, address, FILTER_TIME)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressBlobTableData: %s", pageToken)
 	}
 
 	transactions, lastKey, err := bigtable.GetEth1BtxForAddress(pageToken, DefaultInfScrollRows)
@@ -2675,8 +2759,11 @@ func (bigtable *Bigtable) GetAddressInternalTableData(address []byte, pageToken 
 	defer tmr.Stop()
 
 	// defaults to most recent
+	defaultPageToken := fmt.Sprintf("%s:I:ITX:%x:%s:", bigtable.chainId, address, FILTER_TIME)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:ITX:%x:%s:", bigtable.chainId, address, FILTER_TIME)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressInternalTableData: %s", pageToken)
 	}
 
 	itransactions, keys, err := bigtable.GetEth1ItxsForAddress(pageToken, DefaultInfScrollRows)
@@ -3013,8 +3100,11 @@ func (bigtable *Bigtable) GetAddressErc20TableData(address []byte, pageToken str
 	})
 	defer tmr.Stop()
 
+	defaultPageToken := fmt.Sprintf("%s:I:ERC20:%x:%s:", bigtable.chainId, address, FILTER_TIME)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:ERC20:%x:%s:", bigtable.chainId, address, FILTER_TIME)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressErc20TableData: %s", pageToken)
 	}
 
 	transactions, lastKey, err := bigtable.GetEth1ERC20ForAddress(pageToken, DefaultInfScrollRows)
@@ -3141,8 +3231,11 @@ func (bigtable *Bigtable) GetAddressErc721TableData(address []byte, pageToken st
 	})
 	defer tmr.Stop()
 
+	defaultPageToken := fmt.Sprintf("%s:I:ERC721:%x:%s:", bigtable.chainId, address, FILTER_TIME)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:ERC721:%x:%s:", bigtable.chainId, address, FILTER_TIME)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressErc721TableData: %s", pageToken)
 	}
 
 	transactions, lastKey, err := bigtable.GetEth1ERC721ForAddress(pageToken, DefaultInfScrollRows)
@@ -3253,8 +3346,11 @@ func (bigtable *Bigtable) GetAddressErc1155TableData(address []byte, pageToken s
 	})
 	defer tmr.Stop()
 
+	defaultPageToken := fmt.Sprintf("%s:I:ERC1155:%x:%s:", bigtable.chainId, address, FILTER_TIME)
 	if pageToken == "" {
-		pageToken = fmt.Sprintf("%s:I:ERC1155:%x:%s:", bigtable.chainId, address, FILTER_TIME)
+		pageToken = defaultPageToken
+	} else if !strings.HasPrefix(pageToken, defaultPageToken) {
+		return nil, fmt.Errorf("invalid pageToken for function GetAddressErc1155TableData: %s", pageToken)
 	}
 
 	transactions, lastKey, err := bigtable.GetEth1ERC1155ForAddress(pageToken, DefaultInfScrollRows)
@@ -3299,6 +3395,10 @@ func (bigtable *Bigtable) GetAddressErc1155TableData(address []byte, pageToken s
 }
 
 func (bigtable *Bigtable) GetMetadataUpdates(prefix string, startToken string, limit int) ([]string, []*types.Eth1AddressBalance, error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_get_metadata_updates").Observe(time.Since(startTime).Seconds())
+	}()
 
 	tmr := time.AfterFunc(REPORT_TIMEOUT, func() {
 		logger.WithFields(logrus.Fields{
@@ -3686,8 +3786,11 @@ func (bigtable *Bigtable) GetAddressName(address []byte) (string, error) {
 	add := common.Address{}
 	add.SetBytes(address)
 	name, err := GetEnsNameForAddress(add)
-	if err == nil && name != nil && len(*name) > 0 {
-		return *name, nil
+	if err == nil && len(name) > 0 {
+		return name, nil
+	}
+	if err != nil && err != sql.ErrNoRows {
+		return "", err
 	}
 
 	rowKey := fmt.Sprintf("%s:%x", bigtable.chainId, address)
@@ -4084,6 +4187,11 @@ func (bigtable *Bigtable) SaveContractMetadata(address []byte, metadata *types.C
 }
 
 func (bigtable *Bigtable) SaveBalances(balances []*types.Eth1AddressBalance, deleteKeys []string) error {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("bt_save_balances").Observe(time.Since(startTime).Seconds())
+	}()
+
 	if len(balances) == 0 {
 		return nil
 	}
@@ -4350,11 +4458,19 @@ func (bigtable *Bigtable) GetEth1TxForToken(prefix string, limit int64) ([]*type
 }
 
 func (bigtable *Bigtable) GetTokenTransactionsTableData(token []byte, address []byte, pageToken string) (*types.DataTableResponse, error) {
+
+	defaultPageToken := ""
+	if len(address) == 0 {
+		defaultPageToken = fmt.Sprintf("%s:I:ERC20:%x:ALL:%s", bigtable.chainId, token, FILTER_TIME)
+	} else {
+		defaultPageToken = fmt.Sprintf("%s:I:ERC20:%x:%x:%s", bigtable.chainId, token, address, FILTER_TIME)
+	}
+
 	if pageToken == "" {
-		if len(address) == 0 {
-			pageToken = fmt.Sprintf("%s:I:ERC20:%x:ALL:%s", bigtable.chainId, token, FILTER_TIME)
-		} else {
-			pageToken = fmt.Sprintf("%s:I:ERC20:%x:%x:%s", bigtable.chainId, token, address, FILTER_TIME)
+		pageToken = defaultPageToken
+	} else {
+		if !strings.HasPrefix(pageToken, defaultPageToken) {
+			return nil, fmt.Errorf("invalid pageToken for function GetTokenTransactionsTableData: %s", pageToken)
 		}
 	}
 

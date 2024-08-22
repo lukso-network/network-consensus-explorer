@@ -5,12 +5,13 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"eth2-exporter/cache"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/cache"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -22,8 +23,8 @@ import (
 var FrontendReaderDB *sqlx.DB
 var FrontendWriterDB *sqlx.DB
 
-func MustInitFrontendDB(writer *types.DatabaseConfig, reader *types.DatabaseConfig) {
-	FrontendWriterDB, FrontendReaderDB = mustInitDB(writer, reader)
+func MustInitFrontendDB(writer *types.DatabaseConfig, reader *types.DatabaseConfig, driverName string, databaseBrand string) {
+	FrontendWriterDB, FrontendReaderDB = mustInitDB(writer, reader, driverName, databaseBrand)
 }
 
 // GetUserEmailById returns the email of a user.
@@ -714,14 +715,14 @@ func GetUserAPIKeyStatistics(apikey *string) (*types.ApiStatistics, error) {
 		FROM 
 			api_statistics 
 		WHERE 
-			ts >= DATE_TRUNC('day', NOW()) AND apikey = $1
+			ts >= DATE_TRUNC('day', NOW()) AND apikey = $1 AND bucket = 'default'
 	), (
 		SELECT 
 			COALESCE(SUM(count),0) as monthly 
 		FROM 
 			api_statistics 
 		WHERE 
-			ts >= DATE_TRUNC('month', NOW()) AND apikey = $1
+			ts >= DATE_TRUNC('month', NOW()) AND apikey = $1 AND bucket = 'default'
 	)`
 
 	err := FrontendWriterDB.Get(stats, query, apikey)

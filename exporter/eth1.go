@@ -3,14 +3,15 @@ package exporter
 import (
 	"context"
 	"database/sql"
-	"eth2-exporter/db"
-	"eth2-exporter/metrics"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"math/big"
 	"regexp"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -275,7 +276,7 @@ func saveEth1Deposits(depositsToSave []*types.Eth1Deposit) error {
 			valid_signature
 		)
 		VALUES ($1, $2, $3, $4, TO_TIMESTAMP($5), $6, ENCODE($7, 'hex'), $8, $9, $10, $11, $12, $13, $14)
-		ON CONFLICT (tx_hash, merkletree_index) DO UPDATE SET
+		ON CONFLICT (merkletree_index) DO UPDATE SET
 			tx_input               = EXCLUDED.tx_input,
 			tx_index               = EXCLUDED.tx_index,
 			block_number           = EXCLUDED.block_number,

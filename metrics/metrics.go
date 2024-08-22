@@ -2,14 +2,15 @@ package metrics
 
 import (
 	"database/sql"
-	"eth2-exporter/utils"
-	"eth2-exporter/version"
 	"net/http"
 	"net/http/pprof"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+	"github.com/gobitfly/eth2-beaconchain-explorer/version"
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -65,6 +66,10 @@ var (
 		Name: "notifications_sent",
 		Help: "Counter of notifications sent with the channel and notification type in the label",
 	}, []string{"channel", "status"})
+	Counter = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "counter",
+		Help: "Counter of events with name in labels",
+	}, []string{"name"})
 )
 
 var logger = logrus.New().WithField("module", "metrics")

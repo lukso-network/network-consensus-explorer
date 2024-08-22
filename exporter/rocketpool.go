@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"eth2-exporter/db"
-	"eth2-exporter/utils"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -85,8 +85,6 @@ func initRPConfig() *smartnodeCfg.SmartnodeConfig {
 	})
 	if utils.Config.Chain.Name == "mainnet" {
 		config.Network.Value = smartnodeNetwork.Network_Mainnet
-	} else if utils.Config.Chain.Name == "prater" {
-		config.Network.Value = smartnodeNetwork.Network_Prater
 	} else if utils.Config.Chain.Name == "holesky" {
 		config.Network.Value = smartnodeNetwork.Network_Holesky
 	} else {

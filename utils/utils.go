@@ -11,9 +11,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"eth2-exporter/config"
-	"eth2-exporter/price"
-	"eth2-exporter/types"
 	"fmt"
 	"html/template"
 	"image/color"
@@ -31,8 +28,13 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 	"unicode/utf8"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/config"
+	"github.com/gobitfly/eth2-beaconchain-explorer/price"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
 
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -394,7 +396,7 @@ func GWeiBytesToEther(gwei []byte) decimal.Decimal {
 // WaitForCtrlC will block/wait until a control-c is pressed
 func WaitForCtrlC() {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	<-c
 }
 
@@ -1484,6 +1486,12 @@ func LogFatal(err error, errorMsg interface{}, callerSkip int, additionalInfos .
 // callerSkip equal to 0 gives you info directly where LogError is called.
 func LogError(err error, errorMsg interface{}, callerSkip int, additionalInfos ...map[string]interface{}) {
 	logErrorInfo(err, callerSkip, additionalInfos...).Error(errorMsg)
+}
+
+// LogError logs a warning with callstack info that skips callerSkip many levels with arbitrarily many additional infos.
+// callerSkip equal to 0 gives you info directly where LogError is called.
+func LogWarn(err error, errorMsg interface{}, callerSkip int, additionalInfos ...map[string]interface{}) {
+	logErrorInfo(err, callerSkip, additionalInfos...).Warn(errorMsg)
 }
 
 func logErrorInfo(err error, callerSkip int, additionalInfos ...map[string]interface{}) *logrus.Entry {

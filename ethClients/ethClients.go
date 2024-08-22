@@ -2,7 +2,6 @@ package ethclients
 
 import (
 	"encoding/json"
-	"eth2-exporter/utils"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -10,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/sirupsen/logrus"
 )
@@ -63,6 +64,7 @@ type EthClientServicesPageData struct {
 	Nimbus              EthClients
 	Lighthouse          EthClients
 	Erigon              EthClients
+	Reth                EthClients
 	RocketpoolSmartnode EthClients
 	MevBoost            EthClients
 	Lodestar            EthClients
@@ -84,8 +86,12 @@ func Init() {
 
 func fetchClientData(repo string) *gitAPIResponse {
 	var gitAPI = new(gitAPIResponse)
-	resp, err := httpClient.Get("https://api.github.com/repos" + repo + "/releases/latest")
-	// resp, err := http.Get("http://localhost:5000/repos" + repo)
+
+	githubAPIHost := utils.Config.GithubApiHost
+	if githubAPIHost == "" {
+		githubAPIHost = "api.github.com"
+	}
+	resp, err := httpClient.Get(fmt.Sprintf("https://%s/repos%s/releases/latest", githubAPIHost, repo))
 
 	if err != nil {
 		logger.Errorf("error retrieving ETH Client Data: %v", err)
@@ -205,6 +211,8 @@ func updateEthClientNetShare() {
 			ethClients.Besu.NetworkShare = share
 		case "erigon":
 			ethClients.Erigon.NetworkShare = share
+		case "reth":
+			ethClients.Reth.NetworkShare = share
 		default:
 			continue
 		}
@@ -229,7 +237,8 @@ func updateEthClient() {
 	ethClients.Geth.ClientReleaseVersion, ethClients.Geth.ClientReleaseDate = prepareEthClientData("/ethereum/go-ethereum", "Geth", curTime)
 	ethClients.Nethermind.ClientReleaseVersion, ethClients.Nethermind.ClientReleaseDate = prepareEthClientData("/NethermindEth/nethermind", "Nethermind", curTime)
 	ethClients.Besu.ClientReleaseVersion, ethClients.Besu.ClientReleaseDate = prepareEthClientData("/hyperledger/besu", "Besu", curTime)
-	ethClients.Erigon.ClientReleaseVersion, ethClients.Erigon.ClientReleaseDate = prepareEthClientData("/ledgerwatch/erigon", "Erigon", curTime)
+	ethClients.Erigon.ClientReleaseVersion, ethClients.Erigon.ClientReleaseDate = prepareEthClientData("/erigontech/erigon", "Erigon", curTime)
+	ethClients.Reth.ClientReleaseVersion, ethClients.Reth.ClientReleaseDate = prepareEthClientData("/paradigmxyz/reth", "Reth", curTime)
 
 	ethClients.Teku.ClientReleaseVersion, ethClients.Teku.ClientReleaseDate = prepareEthClientData("/ConsenSys/teku", "Teku", curTime)
 	ethClients.Prysm.ClientReleaseVersion, ethClients.Prysm.ClientReleaseDate = prepareEthClientData("/prysmaticlabs/prysm", "Prysm", curTime)

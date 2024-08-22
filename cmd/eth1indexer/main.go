@@ -5,13 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/erc20"
-	"eth2-exporter/rpc"
-	"eth2-exporter/services"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
-	"eth2-exporter/version"
 	"flag"
 	"fmt"
 	"io"
@@ -22,6 +15,15 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/erc20"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/rpc"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+	"github.com/gobitfly/eth2-beaconchain-explorer/version"
 
 	"github.com/coocood/freecache"
 	"github.com/ethereum/go-ethereum/common"
@@ -69,6 +71,7 @@ func main() {
 	configPath := flag.String("config", "", "Path to the config file, if empty string defaults will be used")
 
 	enableEnsUpdater := flag.Bool("ens.enabled", false, "Enable ens update process")
+	ensBatchSize := flag.Int64("ens.batch", 200, "Batch size for ens updates")
 
 	flag.Parse()
 
@@ -86,6 +89,15 @@ func main() {
 	utils.Config = cfg
 	logrus.WithField("config", *configPath).WithField("version", version.Version).WithField("chainName", utils.Config.Chain.ClConfig.ConfigName).Printf("starting")
 
+	if utils.Config.Metrics.Enabled {
+		go func(addr string) {
+			logrus.Infof("serving metrics on %v", addr)
+			if err := metrics.Serve(addr); err != nil {
+				logrus.WithError(err).Fatal("Error serving metrics")
+			}
+		}(utils.Config.Metrics.Address)
+	}
+
 	// enable pprof endpoint if requested
 	if utils.Config.Pprof.Enabled {
 		go func() {
@@ -102,6 +114,7 @@ func main() {
 		Port:         cfg.WriterDatabase.Port,
 		MaxOpenConns: cfg.WriterDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.WriterDatabase.MaxIdleConns,
+		SSL:          cfg.WriterDatabase.SSL,
 	}, &types.DatabaseConfig{
 		Username:     cfg.ReaderDatabase.Username,
 		Password:     cfg.ReaderDatabase.Password,
@@ -110,7 +123,8 @@ func main() {
 		Port:         cfg.ReaderDatabase.Port,
 		MaxOpenConns: cfg.ReaderDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.ReaderDatabase.MaxIdleConns,
-	})
+		SSL:          cfg.ReaderDatabase.SSL,
+	}, "pgx", "postgres")
 	defer db.ReaderDb.Close()
 	defer db.WriterDb.Close()
 
@@ -162,6 +176,10 @@ func main() {
 				time.Sleep(*tokenPriceExportFrequency)
 			}
 		}()
+	}
+
+	if *enableEnsUpdater {
+		go ImportEnsUpdatesLoop(bt, client, *ensBatchSize)
 	}
 
 	if *enableFullBalanceUpdater {
@@ -364,19 +382,23 @@ func main() {
 			ProcessMetadataUpdates(bt, client, balanceUpdaterPrefix, *balanceUpdaterBatchSize, 10)
 		}
 
-		if *enableEnsUpdater {
-			err := bt.ImportEnsUpdates(client.GetNativeClient(), 1000)
-			if err != nil {
-				utils.LogError(err, "error importing ens updates", 0, nil)
-				continue
-			}
-		}
-
 		logrus.Infof("index run completed")
 		services.ReportStatus("eth1indexer", "Running", nil)
 	}
 
 	// utils.WaitForCtrlC()
+}
+
+func ImportEnsUpdatesLoop(bt *db.Bigtable, client *rpc.ErigonClient, batchSize int64) {
+	for {
+		time.Sleep(time.Second * 5)
+		err := bt.ImportEnsUpdates(client.GetNativeClient(), batchSize)
+		if err != nil {
+			logrus.WithError(err).Errorf("error importing ens updates")
+		} else {
+			services.ReportStatus("ensIndexer", "Running", nil)
+		}
+	}
 }
 
 func UpdateTokenPrices(bt *db.Bigtable, client *rpc.ErigonClient, tokenListPath string) error {
@@ -613,11 +635,20 @@ func IndexFromNode(bt *db.Bigtable, client *rpc.ErigonClient, start, end, concur
 			default:
 			}
 
+			startTime := time.Now()
+			defer func() {
+				metrics.TaskDuration.WithLabelValues("bt_index_from_node").Observe(time.Since(startTime).Seconds())
+			}()
+
 			blockStartTs := time.Now()
 			bc, timings, err := client.GetBlock(i, traceMode)
 			if err != nil {
 				return fmt.Errorf("error getting block: %v from ethereum node err: %w", i, err)
 			}
+
+			metrics.TaskDuration.WithLabelValues("rpc_el_get_block_headers").Observe(timings.Headers.Seconds())
+			metrics.TaskDuration.WithLabelValues("rpc_el_get_block_receipts").Observe(timings.Receipts.Seconds())
+			metrics.TaskDuration.WithLabelValues("rpc_el_get_block_traces").Observe(timings.Traces.Seconds())
 
 			dbStart := time.Now()
 			err = bt.SaveBlock(bc)

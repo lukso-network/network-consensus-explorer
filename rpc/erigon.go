@@ -3,14 +3,16 @@ package rpc
 import (
 	"context"
 	"encoding/hex"
-	"eth2-exporter/contracts/oneinchoracle"
-	"eth2-exporter/erc20"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/contracts/oneinchoracle"
+	"github.com/gobitfly/eth2-beaconchain-explorer/erc20"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum"
@@ -88,6 +90,11 @@ func (client *ErigonClient) GetRPCClient() *geth_rpc.Client {
 }
 
 func (client *ErigonClient) GetBlock(number int64, traceMode string) (*types.Eth1Block, *types.GetBlockTimings, error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("rpc_el_get_block").Observe(time.Since(startTime).Seconds())
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -366,6 +373,11 @@ func (client *ErigonClient) GetBlock(number int64, traceMode string) (*types.Eth
 }
 
 func (client *ErigonClient) GetBlockNumberByHash(hash string) (uint64, error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("rpc_el_get_block_number_by_hash").Observe(time.Since(startTime).Seconds())
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -377,6 +389,11 @@ func (client *ErigonClient) GetBlockNumberByHash(hash string) (uint64, error) {
 }
 
 func (client *ErigonClient) GetLatestEth1BlockNumber() (uint64, error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("rpc_el_get_latest_eth1_block_number").Observe(time.Since(startTime).Seconds())
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
@@ -523,6 +540,11 @@ func (client *ErigonClient) TraceParityTx(txHash string) ([]*ParityTraceResult, 
 }
 
 func (client *ErigonClient) GetBalances(pairs []*types.Eth1AddressBalance, addressIndex, tokenIndex int) ([]*types.Eth1AddressBalance, error) {
+	startTime := time.Now()
+	defer func() {
+		metrics.TaskDuration.WithLabelValues("rpc_el_get_balances").Observe(time.Since(startTime).Seconds())
+	}()
+
 	batchElements := make([]geth_rpc.BatchElem, 0, len(pairs))
 
 	ret := make([]*types.Eth1AddressBalance, len(pairs))

@@ -4,20 +4,23 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/mail"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"html/template"
 	"io"
 	"net/http"
 	"time"
 
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/mail"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+
 	"github.com/sirupsen/logrus"
 	"github.com/stripe/stripe-go/v72"
 	portalsession "github.com/stripe/stripe-go/v72/billingportal/session"
 	"github.com/stripe/stripe-go/v72/checkout/session"
+	"github.com/stripe/stripe-go/v72/price"
+	"github.com/stripe/stripe-go/v72/promotioncode"
 	"github.com/stripe/stripe-go/v72/webhook"
 )
 
@@ -29,6 +32,7 @@ func StripeCreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Price         string `json:"priceId"`
 		AddonQuantity int64  `json:"addonQuantity"`
+		PromotionCode string `json:"promotionCode"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -97,13 +101,13 @@ func StripeCreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		default:
 			logger.Warnf("unknown new addon-product: %v", p)
 		}
-		if totalAddonValidators >= 100_000 {
+		if totalAddonValidators > 100_000 {
 			logger.Errorf("error addon can not be purchased since limit has been reached: %v", totalAddonValidators)
 			w.WriteHeader(http.StatusBadRequest)
 			writeJSON(w, struct {
 				ErrorData string `json:"error"`
 			}{
-				ErrorData: "could not create a new stripe session",
+				ErrorData: "could not create a new stripe session since dasboard-validators-limit has been reached",
 			})
 		}
 	}
@@ -158,9 +162,72 @@ func StripeCreateCheckoutSession(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if req.PromotionCode != "" {
+		stripePrice, err := price.Get(req.Price, nil)
+		if err != nil || stripePrice == nil || stripePrice.Product == nil {
+			logger.WithError(err).WithField("stripePrice", stripePrice).Error("error retrieving stripe product for promotion code")
+			w.WriteHeader(http.StatusInternalServerError)
+			writeJSON(w, struct {
+				ErrorData string `json:"error"`
+			}{
+				ErrorData: "could not create a new stripe session, please try again later",
+			})
+			return
+		}
+
+		pcListParams := &stripe.PromotionCodeListParams{
+			Code:   stripe.String(req.PromotionCode),
+			Active: stripe.Bool(true),
+		}
+		pcListParams.AddExpand("data.coupon.applies_to")
+		it := promotioncode.List(pcListParams)
+		if it.Err() != nil {
+			logger.WithError(it.Err()).Error("error retrieving stripe promotion code")
+			w.WriteHeader(http.StatusInternalServerError)
+			writeJSON(w, struct {
+				ErrorData string `json:"error"`
+			}{
+				ErrorData: "could not create a new stripe session, please try again later",
+			})
+			return
+		}
+
+		var pc *stripe.PromotionCode
+
+		for it.Next() {
+			currPc := it.PromotionCode()
+			if currPc == nil {
+				continue
+			}
+			// use the latest promotion code
+			if pc != nil && currPc.Created < pc.Created {
+				continue
+			}
+			if currPc.Coupon == nil || currPc.Coupon.AppliesTo == nil {
+				continue
+			}
+			for _, p := range currPc.Coupon.AppliesTo.Products {
+				if stripePrice.Product.ID == p {
+					pc = currPc
+					break
+				}
+			}
+		}
+
+		// if promotion code is not found just ignore it
+		if pc != nil {
+			params.AllowPromotionCodes = nil
+			params.Discounts = []*stripe.CheckoutSessionDiscountParams{
+				{
+					PromotionCode: stripe.String(pc.ID),
+				},
+			}
+		}
+	}
+
 	s, err := session.New(params)
 	if err != nil {
-		logger.WithError(err).Error("failed to create a new stripe checkout session")
+		logger.WithError(err).Warn("failed to create a new stripe checkout session")
 		w.WriteHeader(http.StatusBadRequest)
 		writeJSON(w, struct {
 			ErrorData string `json:"error"`
@@ -430,7 +497,12 @@ func StripeWebhook(w http.ResponseWriter, r *http.Request) {
 			}
 			now := time.Now()
 			nowTs := now.Unix()
-			db.UpdateUserSubscription(tx, appSubID, false, nowTs, "user_canceled")
+			err = db.UpdateUserSubscription(tx, appSubID, false, nowTs, "user_canceled")
+			if err != nil {
+				logger.WithError(err).Error("error updating stripe mobile subscription (sub deleted)", subscription.ID)
+				http.Error(w, "error updating stripe mobile subscription customer: "+subscription.Customer.ID, http.StatusInternalServerError)
+				return
+			}
 		}
 
 		err = tx.Commit()

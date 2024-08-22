@@ -1,16 +1,17 @@
 package main
 
 import (
-	"eth2-exporter/db"
-	"eth2-exporter/exporter"
-	"eth2-exporter/rpc"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
-	"eth2-exporter/version"
 	"flag"
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/exporter"
+	"github.com/gobitfly/eth2-beaconchain-explorer/rpc"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+	"github.com/gobitfly/eth2-beaconchain-explorer/version"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -57,6 +58,7 @@ func main() {
 		Port:         cfg.WriterDatabase.Port,
 		MaxOpenConns: cfg.WriterDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.WriterDatabase.MaxIdleConns,
+		SSL:          cfg.WriterDatabase.SSL,
 	}, &types.DatabaseConfig{
 		Username:     cfg.ReaderDatabase.Username,
 		Password:     cfg.ReaderDatabase.Password,
@@ -65,7 +67,8 @@ func main() {
 		Port:         cfg.ReaderDatabase.Port,
 		MaxOpenConns: cfg.ReaderDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.ReaderDatabase.MaxIdleConns,
-	})
+		SSL:          cfg.ReaderDatabase.SSL,
+	}, "pgx", "postgres")
 	defer db.ReaderDb.Close()
 	defer db.WriterDb.Close()
 	db.MustInitFrontendDB(&types.DatabaseConfig{
@@ -76,6 +79,7 @@ func main() {
 		Port:         cfg.Frontend.WriterDatabase.Port,
 		MaxOpenConns: cfg.Frontend.WriterDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.Frontend.WriterDatabase.MaxIdleConns,
+		SSL:          cfg.Frontend.WriterDatabase.SSL,
 	}, &types.DatabaseConfig{
 		Username:     cfg.Frontend.ReaderDatabase.Username,
 		Password:     cfg.Frontend.ReaderDatabase.Password,
@@ -84,7 +88,8 @@ func main() {
 		Port:         cfg.Frontend.ReaderDatabase.Port,
 		MaxOpenConns: cfg.Frontend.ReaderDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.Frontend.ReaderDatabase.MaxIdleConns,
-	})
+		SSL:          cfg.Frontend.ReaderDatabase.SSL,
+	}, "pgx", "postgres")
 	defer db.FrontendReaderDB.Close()
 	defer db.FrontendWriterDB.Close()
 

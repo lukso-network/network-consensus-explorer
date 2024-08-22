@@ -1,23 +1,24 @@
 package main
 
 import (
-	"eth2-exporter/cache"
-	"eth2-exporter/db"
-	"eth2-exporter/metrics"
-	"eth2-exporter/services"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
-	"eth2-exporter/version"
 	"flag"
 	"fmt"
 	"net/http"
-	"strings"
 	"sync"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/cache"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+	"github.com/gobitfly/eth2-beaconchain-explorer/version"
 
 	"github.com/sirupsen/logrus"
 
-	_ "eth2-exporter/docs"
 	_ "net/http/pprof"
+
+	_ "github.com/gobitfly/eth2-beaconchain-explorer/docs"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -50,6 +51,15 @@ func main() {
 		utils.LogFatal(err, "invalid chain configuration specified, you must specify the slots per epoch, seconds per slot and genesis timestamp in the config file", 0)
 	}
 
+	if utils.Config.Metrics.Enabled {
+		go func(addr string) {
+			logrus.Infof("serving metrics on %v", addr)
+			if err := metrics.Serve(addr); err != nil {
+				logrus.WithError(err).Fatal("Error serving metrics")
+			}
+		}(utils.Config.Metrics.Address)
+	}
+
 	if utils.Config.Pprof.Enabled {
 		go func() {
 			logrus.Infof("starting pprof http server on port %s", utils.Config.Pprof.Port)
@@ -70,6 +80,7 @@ func main() {
 			Port:         cfg.WriterDatabase.Port,
 			MaxOpenConns: cfg.WriterDatabase.MaxOpenConns,
 			MaxIdleConns: cfg.WriterDatabase.MaxIdleConns,
+			SSL:          cfg.WriterDatabase.SSL,
 		}, &types.DatabaseConfig{
 			Username:     cfg.ReaderDatabase.Username,
 			Password:     cfg.ReaderDatabase.Password,
@@ -78,7 +89,8 @@ func main() {
 			Port:         cfg.ReaderDatabase.Port,
 			MaxOpenConns: cfg.ReaderDatabase.MaxOpenConns,
 			MaxIdleConns: cfg.ReaderDatabase.MaxIdleConns,
-		})
+			SSL:          cfg.ReaderDatabase.SSL,
+		}, "pgx", "postgres")
 	}()
 
 	wg.Add(1)
@@ -92,6 +104,7 @@ func main() {
 			Port:         cfg.Frontend.WriterDatabase.Port,
 			MaxOpenConns: cfg.Frontend.WriterDatabase.MaxOpenConns,
 			MaxIdleConns: cfg.Frontend.WriterDatabase.MaxIdleConns,
+			SSL:          cfg.Frontend.WriterDatabase.SSL,
 		}, &types.DatabaseConfig{
 			Username:     cfg.Frontend.ReaderDatabase.Username,
 			Password:     cfg.Frontend.ReaderDatabase.Password,
@@ -100,7 +113,8 @@ func main() {
 			Port:         cfg.Frontend.ReaderDatabase.Port,
 			MaxOpenConns: cfg.Frontend.ReaderDatabase.MaxOpenConns,
 			MaxIdleConns: cfg.Frontend.ReaderDatabase.MaxIdleConns,
-		})
+			SSL:          cfg.Frontend.ReaderDatabase.SSL,
+		}, "pgx", "postgres")
 	}()
 
 	wg.Add(1)
@@ -133,27 +147,6 @@ func main() {
 	defer db.FrontendReaderDB.Close()
 	defer db.FrontendWriterDB.Close()
 	defer db.BigtableClient.Close()
-
-	if utils.Config.Metrics.Enabled {
-		go metrics.MonitorDB(db.WriterDb)
-		DBInfo := []string{
-			cfg.WriterDatabase.Username,
-			cfg.WriterDatabase.Password,
-			cfg.WriterDatabase.Host,
-			cfg.WriterDatabase.Port,
-			cfg.WriterDatabase.Name}
-		DBStr := strings.Join(DBInfo, "-")
-		frontendDBInfo := []string{
-			cfg.Frontend.WriterDatabase.Username,
-			cfg.Frontend.WriterDatabase.Password,
-			cfg.Frontend.WriterDatabase.Host,
-			cfg.Frontend.WriterDatabase.Port,
-			cfg.Frontend.WriterDatabase.Name}
-		frontendDBStr := strings.Join(frontendDBInfo, "-")
-		if DBStr != frontendDBStr {
-			go metrics.MonitorDB(db.FrontendWriterDB)
-		}
-	}
 
 	logrus.Infof("database connection established")
 

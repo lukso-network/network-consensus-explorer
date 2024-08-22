@@ -7,15 +7,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
-	"eth2-exporter/cmd/misc/commands"
-	"eth2-exporter/db"
-	"eth2-exporter/exporter"
-	"eth2-exporter/ratelimit"
-	"eth2-exporter/rpc"
-	"eth2-exporter/services"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
-	"eth2-exporter/version"
 	"fmt"
 	"math"
 	"math/big"
@@ -24,6 +15,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/cmd/misc/commands"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/exporter"
+	"github.com/gobitfly/eth2-beaconchain-explorer/rpc"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+	"github.com/gobitfly/eth2-beaconchain-explorer/version"
 
 	"github.com/coocood/freecache"
 	"github.com/ethereum/go-ethereum/common"
@@ -61,17 +61,21 @@ var opts = struct {
 	Key                 string
 	ValidatorNameRanges string
 	Email               string
+	Name                string
 	DryRun              bool
 	Yes                 bool
 }{}
 
+var bt *db.Bigtable
+var erigonClient *rpc.ErigonClient
 var lighthouseClient *rpc.LighthouseClient
+var rpcClient *rpc.LighthouseClient
 
 func main() {
 	statsPartitionCommand := commands.StatsMigratorCommand{}
 
 	configPath := flag.String("config", "config/default.config.yml", "Path to the config file")
-	flag.StringVar(&opts.Command, "command", "", "command to run, available: updateAPIKey, applyDbSchema, initBigtableSchema, epoch-export, debug-rewards, debug-blocks, clear-bigtable, index-old-eth1-blocks, update-aggregation-bits, historic-prices-export, index-missing-blocks, export-epoch-missed-slots, migrate-last-attestation-slot-bigtable, export-genesis-validators, update-block-finalization-sequentially, nameValidatorsByRanges, export-stats-totals, export-sync-committee-periods, export-sync-committee-validator-stats, partition-validator-stats, migrate-app-purchases, update-ratelimits, disable-user-per-email")
+	flag.StringVar(&opts.Command, "command", "", "command to run, available: updateAPIKey, applyDbSchema, initBigtableSchema, epoch-export, debug-rewards, debug-blocks, clear-bigtable, index-old-eth1-blocks, update-aggregation-bits, historic-prices-export, index-missing-blocks, export-epoch-missed-slots, migrate-last-attestation-slot-bigtable, export-genesis-validators, update-block-finalization-sequentially, nameValidatorsByRanges, export-stats-totals, export-sync-committee-periods, export-sync-committee-validator-stats, partition-validator-stats, migrate-app-purchases, disable-user-per-email")
 	flag.Uint64Var(&opts.StartEpoch, "start-epoch", 0, "start epoch")
 	flag.Uint64Var(&opts.EndEpoch, "end-epoch", 0, "end epoch")
 	flag.Uint64Var(&opts.User, "user", 0, "user id")
@@ -91,6 +95,7 @@ func main() {
 	flag.StringVar(&opts.Addresses, "addresses", "", "Comma separated list of addresses that should be processed by the command")
 	flag.StringVar(&opts.Columns, "columns", "", "Comma separated list of columns that should be affected by the command")
 	flag.StringVar(&opts.Email, "email", "", "Email of the user")
+	flag.StringVar(&opts.Name, "name", "", "Name")
 	flag.BoolVar(&opts.Yes, "yes", false, "Answer yes to all questions")
 	dryRun := flag.String("dry-run", "true", "if 'false' it deletes all rows starting with the key, per default it only logs the rows that would be deleted, but does not really delete them")
 	versionFlag := flag.Bool("version", false, "Show version and exit")
@@ -115,60 +120,90 @@ func main() {
 	utils.Config = cfg
 
 	chainIdString := strconv.FormatUint(utils.Config.Chain.ClConfig.DepositChainID, 10)
-
-	bt, err := db.InitBigtable(utils.Config.Bigtable.Project, utils.Config.Bigtable.Instance, chainIdString, utils.Config.RedisCacheEndpoint)
-	if err != nil {
-		utils.LogFatal(err, "error initializing bigtable", 0)
-	}
-
 	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.ClConfig.DepositChainID)
-	rpcClient, err := rpc.NewLighthouseClient("http://"+cfg.Indexer.Node.Host+":"+cfg.Indexer.Node.Port, chainIDBig)
-	if err != nil {
-		utils.LogFatal(err, "lighthouse client error", 0)
-	}
-	lighthouseClient = rpcClient
 
-	erigonClient, err := rpc.NewErigonClient(utils.Config.Eth1ErigonEndpoint)
-	if err != nil {
-		logrus.Fatalf("error initializing erigon client: %v", err)
-	}
+	wg := &sync.WaitGroup{}
+	wg.Add(5)
 
-	db.MustInitDB(&types.DatabaseConfig{
-		Username:     cfg.WriterDatabase.Username,
-		Password:     cfg.WriterDatabase.Password,
-		Name:         cfg.WriterDatabase.Name,
-		Host:         cfg.WriterDatabase.Host,
-		Port:         cfg.WriterDatabase.Port,
-		MaxOpenConns: cfg.WriterDatabase.MaxOpenConns,
-		MaxIdleConns: cfg.WriterDatabase.MaxIdleConns,
-	}, &types.DatabaseConfig{
-		Username:     cfg.ReaderDatabase.Username,
-		Password:     cfg.ReaderDatabase.Password,
-		Name:         cfg.ReaderDatabase.Name,
-		Host:         cfg.ReaderDatabase.Host,
-		Port:         cfg.ReaderDatabase.Port,
-		MaxOpenConns: cfg.ReaderDatabase.MaxOpenConns,
-		MaxIdleConns: cfg.ReaderDatabase.MaxIdleConns,
-	})
+	go func() {
+		defer wg.Done()
+		var err error
+		bt, err = db.InitBigtable(utils.Config.Bigtable.Project, utils.Config.Bigtable.Instance, chainIdString, utils.Config.RedisCacheEndpoint)
+		if err != nil {
+			utils.LogFatal(err, "error initializing bigtable", 0)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		var err error
+		rpcClient, err = rpc.NewLighthouseClient("http://"+cfg.Indexer.Node.Host+":"+cfg.Indexer.Node.Port, chainIDBig)
+		if err != nil {
+			utils.LogFatal(err, "lighthouse client error", 0)
+		}
+		lighthouseClient = rpcClient
+	}()
+
+	go func() {
+		defer wg.Done()
+		var err error
+		erigonClient, err = rpc.NewErigonClient(utils.Config.Eth1ErigonEndpoint)
+		if err != nil {
+			logrus.Fatalf("error initializing erigon client: %v", err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		db.MustInitDB(&types.DatabaseConfig{
+			Username:     cfg.WriterDatabase.Username,
+			Password:     cfg.WriterDatabase.Password,
+			Name:         cfg.WriterDatabase.Name,
+			Host:         cfg.WriterDatabase.Host,
+			Port:         cfg.WriterDatabase.Port,
+			MaxOpenConns: cfg.WriterDatabase.MaxOpenConns,
+			MaxIdleConns: cfg.WriterDatabase.MaxIdleConns,
+			SSL:          cfg.WriterDatabase.SSL,
+		}, &types.DatabaseConfig{
+			Username:     cfg.ReaderDatabase.Username,
+			Password:     cfg.ReaderDatabase.Password,
+			Name:         cfg.ReaderDatabase.Name,
+			Host:         cfg.ReaderDatabase.Host,
+			Port:         cfg.ReaderDatabase.Port,
+			MaxOpenConns: cfg.ReaderDatabase.MaxOpenConns,
+			MaxIdleConns: cfg.ReaderDatabase.MaxIdleConns,
+			SSL:          cfg.ReaderDatabase.SSL,
+		}, "pgx", "postgres")
+	}()
+
+	go func() {
+		defer wg.Done()
+		db.MustInitFrontendDB(&types.DatabaseConfig{
+			Username:     cfg.Frontend.WriterDatabase.Username,
+			Password:     cfg.Frontend.WriterDatabase.Password,
+			Name:         cfg.Frontend.WriterDatabase.Name,
+			Host:         cfg.Frontend.WriterDatabase.Host,
+			Port:         cfg.Frontend.WriterDatabase.Port,
+			MaxOpenConns: cfg.Frontend.WriterDatabase.MaxOpenConns,
+			MaxIdleConns: cfg.Frontend.WriterDatabase.MaxIdleConns,
+			SSL:          cfg.Frontend.WriterDatabase.SSL,
+		}, &types.DatabaseConfig{
+			Username:     cfg.Frontend.ReaderDatabase.Username,
+			Password:     cfg.Frontend.ReaderDatabase.Password,
+			Name:         cfg.Frontend.ReaderDatabase.Name,
+			Host:         cfg.Frontend.ReaderDatabase.Host,
+			Port:         cfg.Frontend.ReaderDatabase.Port,
+			MaxOpenConns: cfg.Frontend.ReaderDatabase.MaxOpenConns,
+			MaxIdleConns: cfg.Frontend.ReaderDatabase.MaxIdleConns,
+			SSL:          cfg.Frontend.ReaderDatabase.SSL,
+		}, "pgx", "postgres")
+	}()
+
+	wg.Wait()
+
 	defer db.ReaderDb.Close()
 	defer db.WriterDb.Close()
-	db.MustInitFrontendDB(&types.DatabaseConfig{
-		Username:     cfg.Frontend.WriterDatabase.Username,
-		Password:     cfg.Frontend.WriterDatabase.Password,
-		Name:         cfg.Frontend.WriterDatabase.Name,
-		Host:         cfg.Frontend.WriterDatabase.Host,
-		Port:         cfg.Frontend.WriterDatabase.Port,
-		MaxOpenConns: cfg.Frontend.WriterDatabase.MaxOpenConns,
-		MaxIdleConns: cfg.Frontend.WriterDatabase.MaxIdleConns,
-	}, &types.DatabaseConfig{
-		Username:     cfg.Frontend.ReaderDatabase.Username,
-		Password:     cfg.Frontend.ReaderDatabase.Password,
-		Name:         cfg.Frontend.ReaderDatabase.Name,
-		Host:         cfg.Frontend.ReaderDatabase.Host,
-		Port:         cfg.Frontend.ReaderDatabase.Port,
-		MaxOpenConns: cfg.Frontend.ReaderDatabase.MaxOpenConns,
-		MaxIdleConns: cfg.Frontend.ReaderDatabase.MaxIdleConns,
-	})
+
 	defer db.FrontendReaderDB.Close()
 	defer db.FrontendWriterDB.Close()
 
@@ -399,14 +434,12 @@ func main() {
 		err = fixEns(erigonClient)
 	case "fix-ens-addresses":
 		err = fixEnsAddresses(erigonClient)
-	case "update-ratelimits":
-		ratelimit.DBUpdater()
 	case "disable-user-per-email":
 		err = disableUserPerEmail()
 	case "fix-epochs":
 		err = fixEpochs()
 	default:
-		utils.LogFatal(nil, fmt.Sprintf("unknown command %s", opts.Command), 0)
+		utils.LogFatal(nil, fmt.Sprintf("unknown command %s", opts.Command), 2)
 	}
 
 	if err != nil {
@@ -508,7 +541,7 @@ func disableUserPerEmail() error {
 }
 
 func fixEns(erigonClient *rpc.ErigonClient) error {
-	logrus.Infof("command: fix-ens")
+	logrus.WithField("dry", opts.DryRun).Infof("command: fix-ens")
 	addrs := []struct {
 		Address []byte `db:"address"`
 		EnsName string `db:"ens_name"`
@@ -570,7 +603,7 @@ func fixEns(erigonClient *rpc.ErigonClient) error {
 				reverseName, err := go_ens.ReverseResolve(erigonClient.GetNativeClient(), dbAddr)
 				if err != nil {
 					if err.Error() == "not a resolver" || err.Error() == "no resolution" {
-						logrus.WithFields(logrus.Fields{"addr": fmt.Sprintf("%#x", addr.Address), "name": addr.EnsName, "reason": fmt.Sprintf("failed reverse-resolve: %v", err.Error())}).Warnf("updating ens entry: is_primary_name = false")
+						logrus.WithFields(logrus.Fields{"addr": dbAddr, "name": addr.EnsName, "reason": fmt.Sprintf("failed reverse-resolve: %v", err.Error())}).Warnf("updating ens entry: is_primary_name = false")
 						if !opts.DryRun {
 							_, err = db.WriterDb.Exec(`update ens set is_primary_name = false where address = $1 and ens_name = $2`, addr.Address, addr.EnsName)
 							if err != nil {
