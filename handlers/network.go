@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/rpc"
-	"eth2-exporter/services"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/rpc"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 	"github.com/shopspring/decimal"
 	"math/big"
 	"net/http"
@@ -42,12 +42,6 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	latestFinalizedEpoch := services.LatestFinalizedEpoch()
-	if err != nil {
-		logger.WithError(err).Error("error getting LatestFinalizedEpoch")
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-
-		return
-	}
 
 	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.ClConfig.DepositChainID)
 	rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
