@@ -1,20 +1,22 @@
 package main
 
 import (
-	"eth2-exporter/cache"
-	"eth2-exporter/db"
-	"eth2-exporter/services"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
-	"eth2-exporter/version"
 	"flag"
 	"fmt"
 	"sync/atomic"
 	"time"
 
+	"github.com/gobitfly/eth2-beaconchain-explorer/cache"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+	"github.com/gobitfly/eth2-beaconchain-explorer/version"
+
 	eth_rewards "github.com/gobitfly/eth-rewards"
 	"github.com/gobitfly/eth-rewards/beacon"
-	_ "github.com/jackc/pgx/v4/stdlib"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 )
@@ -35,6 +37,7 @@ func main() {
 
 	if *versionFlag {
 		fmt.Println(version.Version)
+		fmt.Println(version.GoVersion)
 		return
 	}
 
@@ -44,7 +47,16 @@ func main() {
 		logrus.Fatalf("error reading config file: %v", err)
 	}
 	utils.Config = cfg
-	logrus.WithField("config", *configPath).WithField("version", version.Version).WithField("chainName", utils.Config.Chain.Config.ConfigName).Printf("starting")
+	logrus.WithField("config", *configPath).WithField("version", version.Version).WithField("chainName", utils.Config.Chain.ClConfig.ConfigName).Printf("starting")
+
+	if utils.Config.Metrics.Enabled {
+		go func(addr string) {
+			logrus.Infof("serving metrics on %v", addr)
+			if err := metrics.Serve(addr); err != nil {
+				logrus.WithError(err).Fatal("Error serving metrics")
+			}
+		}(utils.Config.Metrics.Address)
+	}
 
 	db.MustInitDB(&types.DatabaseConfig{
 		Username:     cfg.WriterDatabase.Username,
@@ -54,6 +66,7 @@ func main() {
 		Port:         cfg.WriterDatabase.Port,
 		MaxOpenConns: cfg.WriterDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.WriterDatabase.MaxIdleConns,
+		SSL:          cfg.WriterDatabase.SSL,
 	}, &types.DatabaseConfig{
 		Username:     cfg.ReaderDatabase.Username,
 		Password:     cfg.ReaderDatabase.Password,
@@ -62,13 +75,32 @@ func main() {
 		Port:         cfg.ReaderDatabase.Port,
 		MaxOpenConns: cfg.ReaderDatabase.MaxOpenConns,
 		MaxIdleConns: cfg.ReaderDatabase.MaxIdleConns,
-	})
+		SSL:          cfg.ReaderDatabase.SSL,
+	}, "pgx", "postgres")
 	defer db.ReaderDb.Close()
 	defer db.WriterDb.Close()
 
+	if bnAddress == nil || *bnAddress == "" {
+		if utils.Config.Indexer.Node.Host == "" {
+			utils.LogFatal(nil, "no beacon node url provided", 0)
+		} else {
+			logrus.Info("applying becon node endpoint from config")
+			*bnAddress = fmt.Sprintf("http://%s:%s", utils.Config.Indexer.Node.Host, utils.Config.Indexer.Node.Port)
+		}
+	}
+
+	if enAddress == nil || *enAddress == "" {
+		if utils.Config.Eth1ErigonEndpoint == "" {
+			utils.LogFatal(nil, "no execution node url provided", 0)
+		} else {
+			logrus.Info("applying execution node endpoint from config")
+			*enAddress = utils.Config.Eth1ErigonEndpoint
+		}
+	}
+
 	client := beacon.NewClient(*bnAddress, time.Minute*5)
 
-	bt, err := db.InitBigtable(utils.Config.Bigtable.Project, utils.Config.Bigtable.Instance, fmt.Sprintf("%d", utils.Config.Chain.Config.DepositChainID), utils.Config.RedisCacheEndpoint)
+	bt, err := db.InitBigtable(utils.Config.Bigtable.Project, utils.Config.Bigtable.Instance, fmt.Sprintf("%d", utils.Config.Chain.ClConfig.DepositChainID), utils.Config.RedisCacheEndpoint)
 	if err != nil {
 		logrus.Fatalf("error connecting to bigtable: %v", err)
 	}

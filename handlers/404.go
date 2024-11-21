@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"errors"
-	"eth2-exporter/templates"
 	"io/fs"
 	"net/http"
 	"path"
 	"strings"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
 )
 
 type customFileServer struct {
@@ -73,6 +74,6 @@ func NotFound(w http.ResponseWriter, r *http.Request) {
 	err := notFoundTemplate.ExecuteTemplate(w, "layout", data)
 	if err != nil {
 		logger.Errorf("error executing not-found template for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 	}
 }

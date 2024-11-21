@@ -1,9 +1,10 @@
 package services
 
 import (
-	"eth2-exporter/db"
-	"eth2-exporter/types"
 	"fmt"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
 )
 
 const (
@@ -16,15 +17,17 @@ const (
 	ConfigurationKeyHardforkName     types.ExplorerConfigurationKey = "HardforkName"
 )
 
-/***
+/*
+**
 This is the list of possible configurations that can be changed in the explorer administration
 Per default these values will be taken, overridden by the values from the db, if they exist.
-***/
+**
+*/
 var DefaultExplorerConfiguration types.ExplorerConfigurationMap = types.ExplorerConfigurationMap{
 	ConfigurationCategorySlotViz: {
 		ConfigurationKeyVisibleFromEpoch: {Value: "0", DataType: "int"},
 		ConfigurationKeyHardforkEpoch:    {Value: "0", DataType: "int"},
-		ConfigurationKeyVisibleToEpoch:   {Value: "0", DataType: "int"},
+		ConfigurationKeyVisibleToEpoch:   {Value: "4", DataType: "int"},
 		ConfigurationKeyHardforkName:     {Value: "", DataType: "string"},
 	},
 }

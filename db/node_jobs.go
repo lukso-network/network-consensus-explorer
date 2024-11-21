@@ -3,13 +3,14 @@ package db
 import (
 	"bytes"
 	"database/sql"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/attestantio/go-eth2-client/spec/capella"
 	"github.com/google/uuid"
@@ -311,7 +312,7 @@ func SubmitBLSToExecutionChangesNodeJob(job *types.NodeJob) error {
 	}
 	jobStatus := types.SubmittedToNodeNodeJobStatus
 	if resp.StatusCode != 200 {
-		d, _ := ioutil.ReadAll(resp.Body)
+		d, _ := io.ReadAll(resp.Body)
 		if len(d) > 1000 {
 			d = d[:1000]
 		}
@@ -358,12 +359,11 @@ func CreateVoluntaryExitNodeJob(nj *types.NodeJob) (*types.NodeJob, error) {
 	default:
 	}
 
-	forkVersion := utils.ForkVersionAtEpoch(uint64(njd.Message.Epoch))
-	err = utils.VerifyVoluntaryExitSignature(njd, forkVersion.CurrentVersion, vali.Pubkey)
+	forkVersion := utils.MustParseHex(utils.Config.Chain.ClConfig.CappellaForkVersion)
+	err = utils.VerifyVoluntaryExitSignature(njd, forkVersion, vali.Pubkey)
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = WriterDb.Exec(`insert into node_jobs (id, type, status, data, created_time) values ($1, $2, $3, $4, now())`, nj.ID, nj.Type, nj.Status, nj.RawData)
 	if err != nil {
 		return nil, err
@@ -447,7 +447,7 @@ func SubmitVoluntaryExitNodeJob(job *types.NodeJob) error {
 	}
 	jobStatus := types.SubmittedToNodeNodeJobStatus
 	if resp.StatusCode != 200 {
-		d, _ := ioutil.ReadAll(resp.Body)
+		d, _ := io.ReadAll(resp.Body)
 		if len(d) > 1000 {
 			d = d[:1000]
 		}

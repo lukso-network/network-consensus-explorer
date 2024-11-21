@@ -2,15 +2,16 @@ package exporter
 
 import (
 	"context"
-	"eth2-exporter/db"
-	"eth2-exporter/services"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	ethstore "github.com/gobitfly/eth.store"
 	"github.com/jmoiron/sqlx"
@@ -27,7 +28,7 @@ type EthStoreExporter struct {
 }
 
 // start exporting of eth.store into db
-func StartEthStoreExporter(bnAddress string, enAddress string, updateInterval, errorInterval, sleepInterval time.Duration, startDayReexport, endDayReexport int64) {
+func StartEthStoreExporter(bnAddress string, enAddress string, updateInterval, errorInterval, sleepInterval time.Duration, startDayReexport, endDayReexport int64, concurrency, receiptsMode int) {
 	logger.Info("starting eth.store exporter")
 	ese := &EthStoreExporter{
 		DB:             db.WriterDb,
@@ -51,7 +52,7 @@ func StartEthStoreExporter(bnAddress string, enAddress string, updateInterval, e
 	// Reexport days if specified
 	if startDayReexport != -1 && endDayReexport != -1 {
 		for day := startDayReexport; day <= endDayReexport; day++ {
-			err := ese.reexportDay(strconv.FormatInt(day, 10))
+			err := ese.reexportDay(strconv.FormatInt(day, 10), concurrency, receiptsMode)
 			if err != nil {
 				utils.LogError(err, fmt.Sprintf("error reexporting eth.store day %d in database", day), 0)
 				return
@@ -60,10 +61,10 @@ func StartEthStoreExporter(bnAddress string, enAddress string, updateInterval, e
 		return
 	}
 
-	ese.Run()
+	ese.Run(concurrency, receiptsMode)
 }
 
-func (ese *EthStoreExporter) reexportDay(day string) error {
+func (ese *EthStoreExporter) reexportDay(day string, concurrency, receiptsMode int) error {
 	tx, err := ese.DB.Beginx()
 	if err != nil {
 		return err
@@ -75,7 +76,7 @@ func (ese *EthStoreExporter) reexportDay(day string) error {
 		return err
 	}
 
-	ese.prepareExportDayTx(tx, day)
+	ese.prepareExportDayTx(tx, day, concurrency, receiptsMode)
 	if err != nil {
 		return err
 	}
@@ -83,14 +84,14 @@ func (ese *EthStoreExporter) reexportDay(day string) error {
 	return tx.Commit()
 }
 
-func (ese *EthStoreExporter) exportDay(day string) error {
+func (ese *EthStoreExporter) exportDay(day string, concurrency, receiptsMode int) error {
 	tx, err := ese.DB.Beginx()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	ese.prepareExportDayTx(tx, day)
+	err = ese.prepareExportDayTx(tx, day, concurrency, receiptsMode)
 	if err != nil {
 		return err
 	}
@@ -107,8 +108,8 @@ func (ese *EthStoreExporter) prepareClearDayTx(tx *sqlx.Tx, day string) error {
 	return err
 }
 
-func (ese *EthStoreExporter) prepareExportDayTx(tx *sqlx.Tx, day string) error {
-	ethStoreDay, validators, err := ese.getStoreDay(day)
+func (ese *EthStoreExporter) prepareExportDayTx(tx *sqlx.Tx, day string, concurrency, receiptsMode int) error {
+	ethStoreDay, validators, err := ese.getStoreDay(day, concurrency, receiptsMode)
 	if err != nil {
 		return err
 	}
@@ -208,12 +209,12 @@ func (ese *EthStoreExporter) prepareExportDayTx(tx *sqlx.Tx, day string) error {
 	return err
 }
 
-func (ese *EthStoreExporter) getStoreDay(day string) (*ethstore.Day, map[uint64]*ethstore.Day, error) {
+func (ese *EthStoreExporter) getStoreDay(day string, concurrency, receiptsMode int) (*ethstore.Day, map[uint64]*ethstore.Day, error) {
 	logger.Infof("retrieving eth.store for day %v", day)
-	return ethstore.Calculate(context.Background(), ese.BNAddress, ese.ENAddress, day, 1)
+	return ethstore.Calculate(context.Background(), ese.BNAddress, ese.ENAddress, day, concurrency, receiptsMode)
 }
 
-func (ese *EthStoreExporter) Run() {
+func (ese *EthStoreExporter) Run(concurrency, receiptsMode int) {
 	t := time.NewTicker(ese.UpdateInverval)
 	defer t.Stop()
 DBCHECK:
@@ -231,7 +232,7 @@ DBCHECK:
 			time.Sleep(ese.ErrorInterval)
 			continue
 		}
-		latestDay := utils.DayOfSlot(latestFinalizedEpoch*utils.Config.Chain.Config.SlotsPerEpoch) - 1
+		latestDay := utils.DayOfSlot(latestFinalizedEpoch*utils.Config.Chain.ClConfig.SlotsPerEpoch) - 1
 
 		logger.Infof("latest day is %v", latestDay)
 		// count rows of eth.store days in db
@@ -282,7 +283,7 @@ DBCHECK:
 			})
 			// export missing days
 			for _, dayToExport := range daysToExportArray {
-				err = ese.exportDay(strconv.FormatUint(dayToExport, 10))
+				err = ese.exportDay(strconv.FormatUint(dayToExport, 10), concurrency, receiptsMode)
 				if err != nil {
 					utils.LogError(err, fmt.Sprintf("error exporting eth.store day %d into database", dayToExport), 0)
 					time.Sleep(ese.ErrorInterval)

@@ -1,17 +1,20 @@
 package services
 
 import (
-	"eth2-exporter/cache"
-	"eth2-exporter/db"
-	"eth2-exporter/metrics"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"hash/fnv"
+	"html/template"
 	"math"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/cache"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/rpc"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/aybabtme/uniplot/histogram"
 )
@@ -62,7 +65,7 @@ var ChartHandlers = map[string]chartHandler{
 // LatestChartsPageData returns the latest chart page data
 func LatestChartsPageData() []*types.ChartsPageDataChart {
 	wanted := &[]*types.ChartsPageDataChart{}
-	cacheKey := fmt.Sprintf("%d:frontend:chartsPageData", utils.Config.Chain.Config.DepositChainID)
+	cacheKey := fmt.Sprintf("%d:frontend:chartsPageData", utils.Config.Chain.ClConfig.DepositChainID)
 
 	if wanted, err := cache.TieredCache.GetWithLocalTimeout(cacheKey, time.Hour, wanted); err == nil {
 		return *wanted.(*[]*types.ChartsPageDataChart)
@@ -74,7 +77,7 @@ func LatestChartsPageData() []*types.ChartsPageDataChart {
 }
 
 func chartsPageDataUpdater(wg *sync.WaitGroup) {
-	sleepDuration := time.Second * time.Duration(utils.Config.Chain.Config.SecondsPerSlot)
+	sleepDuration := time.Hour // only update charts once per hour
 	var prevEpoch uint64
 
 	firstun := true
@@ -88,7 +91,7 @@ func chartsPageDataUpdater(wg *sync.WaitGroup) {
 
 		// if start.Add(time.Minute * -20).After(utils.EpochToTime(latestEpoch)) {
 		// 	logger.Info("skipping chartsPageDataUpdater because the explorer is syncing")
-		// 	time.Sleep(time.Second * 60)
+		// 	time.Sleep(time.Minute)
 		// 	continue
 		// }
 
@@ -101,8 +104,8 @@ func chartsPageDataUpdater(wg *sync.WaitGroup) {
 		metrics.TaskDuration.WithLabelValues("service_charts_updater").Observe(time.Since(start).Seconds())
 		logger.WithField("epoch", latestEpoch).WithField("duration", time.Since(start)).Info("chartPageData update completed")
 
-		cacheKey := fmt.Sprintf("%d:frontend:chartsPageData", utils.Config.Chain.Config.DepositChainID)
-		cache.TieredCache.Set(cacheKey, data, time.Hour*24)
+		cacheKey := fmt.Sprintf("%d:frontend:chartsPageData", utils.Config.Chain.ClConfig.DepositChainID)
+		cache.TieredCache.Set(cacheKey, data, utils.Day)
 
 		prevEpoch = latestEpoch
 
@@ -112,7 +115,7 @@ func chartsPageDataUpdater(wg *sync.WaitGroup) {
 		}
 		if latestEpoch == 0 {
 			ReportStatus("chartsPageDataUpdater", "Running", nil)
-			time.Sleep(time.Second * 60 * 10)
+			time.Sleep(time.Minute * 10)
 		}
 	}
 }
@@ -126,7 +129,7 @@ func getChartsPageData() ([]*types.ChartsPageDataChart, error) {
 	}
 
 	// add charts if it is mainnet
-	if utils.Config.Chain.Config.DepositChainID == 1 {
+	if utils.Config.Chain.ClConfig.DepositChainID == 1 {
 		ChartHandlers["total_supply"] = chartHandler{20, TotalEmissionChartData}
 		ChartHandlers["market_cap_chart_data"] = chartHandler{21, MarketCapChartData}
 	}
@@ -275,7 +278,7 @@ func activeValidatorsChartData() (*types.GenericChartData, error) {
 	dailyActiveValidators := [][]float64{}
 
 	for _, row := range rows {
-		day := float64(utils.EpochToTime(row.Epoch).Truncate(time.Hour*24).Unix() * 1000)
+		day := float64(utils.EpochToTime(row.Epoch).Truncate(utils.Day).Unix() * 1000)
 
 		if len(dailyActiveValidators) == 0 || dailyActiveValidators[len(dailyActiveValidators)-1][0] != day {
 			dailyActiveValidators = append(dailyActiveValidators, []float64{day, float64(row.ValidatorsCount)})
@@ -323,16 +326,16 @@ func stakedEtherChartData() (*types.GenericChartData, error) {
 	}
 
 	chartData := &types.GenericChartData{
-		Title:                           "Staked LYX",
-		Subtitle:                        "History of daily staked LYX, which is the sum of all Effective Balances.",
+		Title:                           fmt.Sprintf("Staked %v", utils.Config.Frontend.ClCurrency),
+		Subtitle:                        fmt.Sprintf("History of daily staked %v, which is the sum of all Effective Balances.", utils.Config.Frontend.ClCurrency),
 		XAxisTitle:                      "",
-		YAxisTitle:                      "LYX",
+		YAxisTitle:                      utils.Config.Frontend.ClCurrency,
 		StackingMode:                    "false",
 		Type:                            "column",
 		ColumnDataGroupingApproximation: "close",
 		Series: []*types.GenericChartDataSeries{
 			{
-				Name: "Staked LYX",
+				Name: fmt.Sprintf("Staked %v", utils.Config.Frontend.ClCurrency),
 				Data: series,
 			},
 		},
@@ -366,13 +369,13 @@ func averageBalanceChartData() (*types.GenericChartData, error) {
 		Title:                           "Validator Balance",
 		Subtitle:                        "Average Daily Validator Balance.",
 		XAxisTitle:                      "",
-		YAxisTitle:                      "LYX",
+		YAxisTitle:                      utils.Config.Frontend.ClCurrency,
 		StackingMode:                    "false",
 		Type:                            "column",
 		ColumnDataGroupingApproximation: "average",
 		Series: []*types.GenericChartDataSeries{
 			{
-				Name: "Average Balance [LYX]",
+				Name: fmt.Sprintf("Average Balance [%s]", utils.Config.Frontend.ClCurrency),
 				Data: series,
 			},
 		},
@@ -599,18 +602,18 @@ func balanceDistributionChartData() (*types.GenericChartData, error) {
 		return nil, fmt.Errorf("chart-data not available pre-genesis")
 	}
 
-	balances, err := db.BigtableClient.GetValidatorBalanceHistory([]uint64{}, epoch, epoch)
+	validators, err := rpc.CurrentClient.GetValidatorState(epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	currentBalances := make([]float64, 0, len(balances))
+	if validators.Data == nil {
+		return nil, fmt.Errorf("GetValidatorState returned empty validator set for epoch %v", epoch)
+	}
 
-	for _, balance := range balances {
-		if len(balance) == 0 {
-			continue
-		}
-		currentBalances = append(currentBalances, float64(balance[0].Balance)/1e9)
+	currentBalances := make([]float64, 0, len(validators.Data))
+	for _, entry := range validators.Data {
+		currentBalances = append(currentBalances, float64(entry.Balance)/1e9)
 	}
 
 	bins := int(math.Sqrt(float64(len(currentBalances)))) + 1
@@ -629,7 +632,7 @@ func balanceDistributionChartData() (*types.GenericChartData, error) {
 		Subtitle:             fmt.Sprintf("Histogram of Balances at epoch %d.", epoch),
 		XAxisTitle:           "Balance",
 		YAxisTitle:           "# of Validators",
-		XAxisLabelsFormatter: `function(){ return this.value+'LYX' }`,
+		XAxisLabelsFormatter: template.JS(fmt.Sprintf(`function(){ return this.value+' %s' }`, utils.Config.Frontend.ClCurrency)),
 		StackingMode:         "false",
 		Type:                 "column",
 		Series: []*types.GenericChartDataSeries{
@@ -649,18 +652,19 @@ func effectiveBalanceDistributionChartData() (*types.GenericChartData, error) {
 		return nil, fmt.Errorf("chart-data not available pre-genesis")
 	}
 
-	balances, err := db.BigtableClient.GetValidatorBalanceHistory([]uint64{}, epoch, epoch)
+	validators, err := rpc.CurrentClient.GetValidatorState(epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	effectiveBalances := make([]float64, 0, len(balances))
+	if validators.Data == nil {
+		return nil, fmt.Errorf("GetValidatorState returned empty validator set for epoch %v", epoch)
+	}
 
-	for _, balance := range balances {
-		if len(balance) == 0 {
-			continue
-		}
-		effectiveBalances = append(effectiveBalances, float64(balance[0].EffectiveBalance)/1e9)
+	effectiveBalances := make([]float64, 0, len(validators.Data))
+
+	for _, entry := range validators.Data {
+		effectiveBalances = append(effectiveBalances, float64(entry.Validator.EffectiveBalance)/1e9)
 	}
 
 	bins := int(math.Sqrt(float64(len(effectiveBalances)))) + 1
@@ -679,7 +683,7 @@ func effectiveBalanceDistributionChartData() (*types.GenericChartData, error) {
 		Subtitle:             fmt.Sprintf("Histogram of Effective Balances at epoch %d.", epoch),
 		XAxisTitle:           "Effective Balance",
 		YAxisTitle:           "# of Validators",
-		XAxisLabelsFormatter: `function(){ return this.value+'LYX' }`,
+		XAxisLabelsFormatter: template.JS(fmt.Sprintf(`function(){ return this.value+' %s' }`, utils.Config.Frontend.ClCurrency)),
 		StackingMode:         "false",
 		Type:                 "column",
 		Series: []*types.GenericChartDataSeries{
@@ -743,11 +747,10 @@ func performanceDistribution365dChartData() (*types.GenericChartData, error) {
 		Title:         "Income Distribution (365 days)",
 		Subtitle:      fmt.Sprintf("Histogram of income-performances of the last 365 days at epoch %d.", LatestEpoch()),
 		XAxisTitle:    "Income",
-		XAxisLabelsFormatter: `function(){
-  if (this.value < 0) return '<span style="color:var(--danger)">'+this.value+'LYX<span>'
-  return '<span style="color:var(--success)">'+this.value+'LYX<span>'
-}
-`,
+		XAxisLabelsFormatter: template.JS(fmt.Sprintf(`function(){
+  if (this.value < 0) return '<span style="color:var(--danger)">'+this.value+' %[1]v<span>'
+  return '<span style="color:var(--success)">'+this.value+' %[1]v<span>'
+}`, utils.Config.Frontend.ClCurrency)),
 		YAxisTitle:   "# of Validators",
 		StackingMode: "false",
 		Type:         "column",
@@ -804,19 +807,19 @@ func depositsChartData() (*types.GenericChartData, error) {
 		Type:         "column",
 		Series: []*types.GenericChartDataSeries{
 			{
-				Name:  "ETH2",
+				Name:  "Consensus",
 				Data:  clSeries,
 				Stack: "eth2",
 				Color: "#66bce9",
 			},
 			{
-				Name:  "ETH1 (success)",
+				Name:  "Execution (success)",
 				Data:  elValidSeries,
 				Stack: "eth1",
 				Color: "#7dc382",
 			},
 			{
-				Name:  "ETH1 (failed)",
+				Name:  "Execution (failed)",
 				Data:  elInvalidSeries,
 				Stack: "eth1",
 				Color: "#f3454a",
@@ -847,15 +850,15 @@ func withdrawalsChartData() (*types.GenericChartData, error) {
 	for _, row := range rows {
 		seriesData = append(seriesData, []float64{
 			float64(row.Time.UnixMilli()),
-			row.Value,
+			utils.ClToMainCurrency(row.Value).InexactFloat64(),
 		})
 	}
 
 	chartData := &types.GenericChartData{
 		Title:        "Withdrawals",
-		Subtitle:     "Daily Amount of withdrawals in LYX.",
+		Subtitle:     fmt.Sprintf("Daily Amount of withdrawals in %s.", utils.Config.Frontend.ClCurrency),
 		XAxisTitle:   "",
-		YAxisTitle:   "Withdrawals LYX",
+		YAxisTitle:   fmt.Sprintf("Withdrawals %s", utils.Config.Frontend.ClCurrency),
 		StackingMode: "normal",
 		Type:         "column",
 		Series: []*types.GenericChartDataSeries{

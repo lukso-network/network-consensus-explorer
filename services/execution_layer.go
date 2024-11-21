@@ -1,12 +1,13 @@
 package services
 
 import (
-	"eth2-exporter/cache"
-	"eth2-exporter/db"
-	"eth2-exporter/utils"
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/cache"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 const latestBlockNumberCacheKey = "latestEth1BlockNumber"
@@ -21,8 +22,8 @@ func latestBlockUpdater(wg *sync.WaitGroup) {
 		if err != nil {
 			utils.LogError(err, "error getting most recent eth1 block", 0)
 		}
-		cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.Config.DepositChainID, latestBlockNumberCacheKey)
-		err = cache.TieredCache.SetUint64(cacheKey, recent.GetNumber(), time.Hour*24)
+		cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.ClConfig.DepositChainID, latestBlockNumberCacheKey)
+		err = cache.TieredCache.SetUint64(cacheKey, recent.GetNumber(), utils.Day)
 		if err != nil {
 			utils.LogError(err, fmt.Sprintf("error caching latest block number with cache key %s", latestBlockNumberCacheKey), 0)
 		}
@@ -39,7 +40,7 @@ func latestBlockUpdater(wg *sync.WaitGroup) {
 
 // LatestEth1BlockNumber will return most recent eth1 block number
 func LatestEth1BlockNumber() uint64 {
-	cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.Config.DepositChainID, latestBlockNumberCacheKey)
+	cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.ClConfig.DepositChainID, latestBlockNumberCacheKey)
 
 	if wanted, err := cache.TieredCache.GetUint64WithLocalTimeout(cacheKey, time.Second*5); err == nil {
 		return wanted
@@ -65,8 +66,8 @@ func headBlockRootHashUpdater(wg *sync.WaitGroup) {
 		if err != nil {
 			utils.LogError(err, "error getting blockroot hash for chain head", 0)
 		}
-		cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.Config.DepositChainID, latestBlockHashRootCacheKey)
-		err = cache.TieredCache.SetString(cacheKey, string(blockRootHash), time.Hour*24)
+		cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.ClConfig.DepositChainID, latestBlockHashRootCacheKey)
+		err = cache.TieredCache.SetString(cacheKey, string(blockRootHash), utils.Day)
 		if err != nil {
 			utils.LogError(err, fmt.Sprintf("error caching latest blockroot hash with cache key %s", latestBlockHashRootCacheKey), 0)
 		}
@@ -83,7 +84,7 @@ func headBlockRootHashUpdater(wg *sync.WaitGroup) {
 
 // Eth1HeadBlockRootHash will return the hash of the current chain head block
 func Eth1HeadBlockRootHash() []byte {
-	cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.Config.DepositChainID, latestBlockHashRootCacheKey)
+	cacheKey := fmt.Sprintf("%d:frontend:%s", utils.Config.Chain.ClConfig.DepositChainID, latestBlockHashRootCacheKey)
 
 	if wanted, err := cache.TieredCache.GetStringWithLocalTimeout(cacheKey, time.Second*5); err == nil {
 		return []byte(wanted)

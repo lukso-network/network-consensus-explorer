@@ -1,10 +1,11 @@
 package exporter
 
 import (
-	"eth2-exporter/db"
-	"eth2-exporter/utils"
 	"fmt"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,9 +27,13 @@ func exportSyncCommitteesCount() error {
 		return err
 	}
 
-	currEpoch := utils.TimeToEpoch(time.Now())
-	currentPeriod := utils.SyncPeriodOfEpoch(uint64(currEpoch))
-	firstPeriod := utils.SyncPeriodOfEpoch(utils.Config.Chain.Config.AltairForkEpoch)
+	latestFinalizedEpoch, err := db.GetLatestFinalizedEpoch()
+	if err != nil {
+		logger.Errorf("error retrieving latest exported finalized epoch from the database: %v", err)
+	}
+
+	currentPeriod := utils.SyncPeriodOfEpoch(latestFinalizedEpoch)
+	firstPeriod := utils.SyncPeriodOfEpoch(utils.Config.Chain.ClConfig.AltairForkEpoch)
 
 	dbPeriod := uint64(0)
 	countSoFar := float64(0)
@@ -73,9 +78,9 @@ func exportSyncCommitteesCountAtPeriod(period uint64, countSoFar float64) (float
 		totalValidatorsCount := uint64(0)
 		err := db.WriterDb.Get(&totalValidatorsCount, "SELECT validatorscount FROM epochs WHERE epoch = $1", e)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("error retrieving validatorscount for epoch %v: %v", e, err)
 		}
-		count = countSoFar + (float64(utils.Config.Chain.Config.SyncCommitteeSize) / float64(totalValidatorsCount))
+		count = countSoFar + (float64(utils.Config.Chain.ClConfig.SyncCommitteeSize) / float64(totalValidatorsCount))
 	}
 
 	tx, err := db.WriterDb.Beginx()

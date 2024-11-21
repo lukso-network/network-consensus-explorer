@@ -2,13 +2,14 @@ package services
 
 import (
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/metrics"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/metrics"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 func StartHistoricPriceService() {
@@ -112,7 +113,7 @@ func fetchHistoricPrice(ts time.Time) (*types.HistoricEthPrice, error) {
 	if utils.Config.Chain.Name == "gnosis" {
 		chain = "gnosis"
 	}
-	resp, err := client.Get(fmt.Sprintf("https://api.coingecko.com/api/v3/coins/%s/history?date=%s", chain, ts.Truncate(time.Hour*24).Format("02-01-2006")))
+	resp, err := client.Get(fmt.Sprintf("https://api.coingecko.com/api/v3/coins/%s/history?date=%s", chain, ts.Truncate(utils.Day).Format("02-01-2006")))
 
 	if err != nil {
 		return nil, err

@@ -1,9 +1,10 @@
 package handlers
 
 import (
-	"eth2-exporter/templates"
-	"eth2-exporter/utils"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 // Will return the confirmation page
@@ -16,16 +17,6 @@ func Confirmation(w http.ResponseWriter, r *http.Request) {
 	type confirmationPageData struct {
 		Flashes []interface{}
 	}
-
-	// _, session, err := getUserSession(w, r)
-	// if err != nil {
-	// 	logger.Errorf("error retrieving session: %v", err)
-	// 	http.Error(w, "Internal server error", http.StatusInternalServerError)
-	// 	return
-	// }
-	// session.AddFlash("this is something")
-	// session.AddFlash("Error: this is something else")
-	// session.Save(r, w)
 
 	pageData := confirmationPageData{}
 	pageData.Flashes = utils.GetFlashes(w, r, authSessionName)

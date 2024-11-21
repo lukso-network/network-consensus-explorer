@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 // Eth2Deposits will return information about deposits using a go template
@@ -27,20 +28,20 @@ func Eth2DepositsData(w http.ResponseWriter, r *http.Request) {
 
 	draw, err := strconv.ParseUint(q.Get("draw"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables data parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables draw parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter draw", http.StatusBadRequest)
 		return
 	}
 	start, err := strconv.ParseUint(q.Get("start"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables start parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables start parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter start", http.StatusBadRequest)
 		return
 	}
 	length, err := strconv.ParseUint(q.Get("length"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables length parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables length parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter length", http.StatusBadRequest)
 		return
 	}
 	if length > 100 {
@@ -63,17 +64,10 @@ func Eth2DepositsData(w http.ResponseWriter, r *http.Request) {
 
 	orderDir := q.Get("order[0][dir]")
 
-	depositCount, err := db.GetEth2DepositsCount(search)
+	deposits, depositCount, err := db.GetEth2Deposits(search, length, start, orderBy, orderDir)
 	if err != nil {
-		logger.Errorf("error retrieving eth2_deposit count: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-		return
-	}
-
-	deposits, err := db.GetEth2Deposits(search, length, start, orderBy, orderDir)
-	if err != nil {
-		logger.Errorf("error retrieving eth2_deposit data: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Errorf("error retrieving eth2_deposit data or count: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -100,7 +94,7 @@ func Eth2DepositsData(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(data)
 	if err != nil {
 		logger.Errorf("error enconding json response for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 }

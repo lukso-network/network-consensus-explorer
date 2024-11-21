@@ -14,7 +14,9 @@
     "check-format": "npm run check-html && npm run check-js",
     "check-html": "prettier -c templates/",
     "check-js": "prettier -c static/js",
-    "format-html": "prettier --write templates/"
+    "format": "npm run format-html && npm run format-js",
+    "format-html": "prettier -w templates/",
+    "format-js": "prettier -w static/js"
   },
   "repository": {
     "type": "git",

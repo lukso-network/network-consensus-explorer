@@ -17,6 +17,7 @@ import (
 	itypes "github.com/gobitfly/eth-rewards/types"
 	"github.com/lib/pq"
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 )
 
 // PageData is a struct to hold web page data
@@ -38,11 +39,10 @@ type PageData struct {
 	FinalizationDelay     uint64
 	Mainnet               bool
 	DepositContract       string
-	Rates                 PageRates
+	Rates                 *Rates
 	InfoBanner            *template.HTML
-	ClientsUpdated        bool
 	// IsUserClientUpdated   func(uint64) bool
-	ChainConfig         ChainConfig
+	ChainConfig         ClChainConfig
 	Lang                string
 	NoAds               bool
 	Debug               bool
@@ -52,6 +52,8 @@ type PageData struct {
 	GlobalNotification  template.HTML
 	AvailableCurrencies []string
 	MainMenuItems       []MainMenuItem
+	TermsOfServiceUrl   string
+	PrivacyPolicyUrl    string
 }
 
 type MainMenuItem struct {
@@ -76,31 +78,36 @@ type NavigationLink struct {
 	IsHighlighted bool
 }
 
-type PageRates struct {
-	EthPrice               float64
-	EthRoundPrice          uint64
-	EthTruncPrice          template.HTML
-	UsdRoundPrice          uint64
-	UsdTruncPrice          template.HTML
-	EurRoundPrice          uint64
-	EurTruncPrice          template.HTML
-	GbpRoundPrice          uint64
-	GbpTruncPrice          template.HTML
-	CnyRoundPrice          uint64
-	CnyTruncPrice          template.HTML
-	RubRoundPrice          uint64
-	RubTruncPrice          template.HTML
-	CadRoundPrice          uint64
-	CadTruncPrice          template.HTML
-	AudRoundPrice          uint64
-	AudTruncPrice          template.HTML
-	JpyRoundPrice          uint64
-	JpyTruncPrice          template.HTML
-	Currency               string
-	CurrentPriceFormatted  template.HTML
-	CurrentPriceKFormatted template.HTML
-	CurrentSymbol          string
-	ExchangeRate           float64
+type Rates struct {
+	TickerCurrency                    string                `json:"tickerCurrency"`
+	TickerCurrencySymbol              string                `json:"tickerCurrencySymbol"`
+	SelectedCurrency                  string                `json:"selectedCurrency"`
+	SelectedCurrencySymbol            string                `json:"selectedCurrencySymbol"`
+	MainCurrency                      string                `json:"mainCurrency"`
+	MainCurrencySymbol                string                `json:"mainCurrencySymbol"`
+	MainCurrencyPrice                 float64               `json:"mainCurrencyPrice"`
+	MainCurrencyPriceFormatted        template.HTML         `json:"mainCurrencyPriceFormatted"`
+	MainCurrencyPriceKFormatted       template.HTML         `json:"mainCurrencyKFormatted"`
+	MainCurrencyTickerPrice           float64               `json:"mainCurrencyTickerPrice"`
+	MainCurrencyTickerPriceFormatted  template.HTML         `json:"mainCurrencyTickerPriceFormatted"`
+	MainCurrencyTickerPriceKFormatted template.HTML         `json:"mainCurrencyTickerPriceKFormatted"`
+	ElCurrency                        string                `json:"elCurrency"`
+	ElCurrencySymbol                  string                `json:"elCurrencySymbol"`
+	ElCurrencyPrice                   float64               `json:"elCurrencyPrice"`
+	ElCurrencyPriceFormatted          template.HTML         `json:"elCurrencyPriceFormatted"`
+	ElCurrencyPriceKFormatted         template.HTML         `json:"elCurrencyKFormatted"`
+	ClCurrency                        string                `json:"clCurrency"`
+	ClCurrencySymbol                  string                `json:"clCurrencySymbol"`
+	ClCurrencyPrice                   float64               `json:"clCurrencyPrice"`
+	ClCurrencyPriceFormatted          template.HTML         `json:"clCurrencyPriceFormatted"`
+	ClCurrencyPriceKFormatted         template.HTML         `json:"clCurrencyKFormatted"`
+	MainCurrencyPrices                map[string]RatesPrice `json:"mainCurrencyTickerPrices"`
+}
+
+type RatesPrice struct {
+	Symbol     string        `json:"symbol"`
+	RoundPrice uint64        `json:"roundPrice"`
+	TruncPrice template.HTML `json:"truncPrice"`
 }
 
 // Meta is a struct to hold metadata about the page
@@ -119,32 +126,13 @@ type Meta struct {
 
 // LatestState is a struct to hold data for the banner
 type LatestState struct {
-	LastProposedSlot      uint64        `json:"lastProposedSlot"`
-	CurrentSlot           uint64        `json:"currentSlot"`
-	CurrentEpoch          uint64        `json:"currentEpoch"`
-	CurrentFinalizedEpoch uint64        `json:"currentFinalizedEpoch"`
-	FinalityDelay         uint64        `json:"finalityDelay"`
-	IsSyncing             bool          `json:"syncing"`
-	EthPrice              float64       `json:"ethPrice"`
-	EthRoundPrice         uint64        `json:"ethRoundPrice"`
-	EthTruncPrice         template.HTML `json:"ethTruncPrice"`
-	UsdRoundPrice         uint64        `json:"usdRoundPrice"`
-	UsdTruncPrice         template.HTML `json:"usdTruncPrice"`
-	EurRoundPrice         uint64        `json:"eurRoundPrice"`
-	EurTruncPrice         template.HTML `json:"eurTruncPrice"`
-	GbpRoundPrice         uint64        `json:"gbpRoundPrice"`
-	GbpTruncPrice         template.HTML `json:"gbpTruncPrice"`
-	CnyRoundPrice         uint64        `json:"cnyRoundPrice"`
-	CnyTruncPrice         template.HTML `json:"cnyTruncPrice"`
-	RubRoundPrice         uint64        `json:"rubRoundPrice"`
-	RubTruncPrice         template.HTML `json:"rubTruncPrice"`
-	CadRoundPrice         uint64        `json:"cadRoundPrice"`
-	CadTruncPrice         template.HTML `json:"cadTruncPrice"`
-	AudRoundPrice         uint64        `json:"audRoundPrice"`
-	AudTruncPrice         template.HTML `json:"audTruncPrice"`
-	JpyRoundPrice         uint64        `json:"jpyRoundPrice"`
-	JpyTruncPrice         template.HTML `json:"jpyTruncPrice"`
-	Currency              string        `json:"currency"`
+	LastProposedSlot      uint64 `json:"lastProposedSlot"`
+	CurrentSlot           uint64 `json:"currentSlot"`
+	CurrentEpoch          uint64 `json:"currentEpoch"`
+	CurrentFinalizedEpoch uint64 `json:"currentFinalizedEpoch"`
+	FinalityDelay         uint64 `json:"finalityDelay"`
+	IsSyncing             bool   `json:"syncing"`
+	Rates                 *Rates `json:"rates"`
 }
 
 type Stats struct {
@@ -155,6 +143,7 @@ type Stats struct {
 	ActiveValidatorCount           *uint64 `db:"count"`
 	PendingValidatorCount          *uint64 `db:"count"`
 	ValidatorChurnLimit            *uint64
+	ValidatorActivationChurnLimit  *uint64
 	LatestValidatorWithdrawalIndex *uint64 `db:"index"`
 	WithdrawableValidatorCount     *uint64 `db:"count"`
 	// WithdrawableAmount             *uint64 `db:"amount"`
@@ -195,6 +184,7 @@ type IndexPageData struct {
 	Epochs                    []*IndexPageDataEpochs `json:"epochs"`
 	StakedEtherChartData      [][]float64            `json:"staked_ether_chart_data"`
 	ActiveValidatorsChartData [][]float64            `json:"active_validators_chart_data"`
+	Title                     template.HTML          `json:"title"`
 	Subtitle                  template.HTML          `json:"subtitle"`
 	Genesis                   bool                   `json:"genesis"`
 	GenesisPeriod             bool                   `json:"genesis_period"`
@@ -203,6 +193,8 @@ type IndexPageData struct {
 	DepositDistribution       *ChartsPageDataChart
 	Countdown                 interface{}
 	SlotVizData               *SlotVizPageData `json:"slotVizData"`
+	ClCurrency                string
+	ElCurrency                string
 	ValidatorsPerEpoch        uint64
 	ValidatorsPerDay          uint64
 	NewDepositProcessAfter    string
@@ -363,8 +355,6 @@ type ValidatorPageData struct {
 	ExecutedAttestationsCount                uint64
 	MissedAttestationsCount                  uint64
 	UnmissedAttestationsPercentage           float64 // missed/(executed+orphaned)
-	StatusProposedCount                      uint64
-	StatusMissedCount                        uint64
 	DepositsCount                            uint64
 	WithdrawalCount                          uint64
 	SlashingsCount                           uint64
@@ -377,12 +367,13 @@ type ValidatorPageData struct {
 	ParticipatedSyncCountSlots               uint64
 	MissedSyncCountSlots                     uint64
 	OrphanedSyncCountSlots                   uint64
-	UnmissedSyncPercentage                   float64       // participated/(participated+missed)
-	IncomeToday                              ClElInt64     `json:"incomeToday"`
-	Income1d                                 ClElInt64     `json:"income1d"`
-	Income7d                                 ClElInt64     `json:"income7d"`
-	Income31d                                ClElInt64     `json:"income31d"`
-	IncomeTotal                              ClElInt64     `json:"incomeTotal"`
+	UnmissedSyncPercentage                   float64 // participated/(participated+missed)
+	Income                                   *ValidatorEarnings
+	IncomeToday                              ClEl          `json:"incomeToday"`
+	Income1d                                 ClEl          `json:"income1d"`
+	Income7d                                 ClEl          `json:"income7d"`
+	Income31d                                ClEl          `json:"income31d"`
+	IncomeTotal                              ClEl          `json:"incomeTotal"`
 	IncomeTotalFormatted                     template.HTML `json:"incomeTotalFormatted"`
 	Apr7d                                    ClElFloat64   `json:"apr7d"`
 	Apr31d                                   ClElFloat64   `json:"apr31d"`
@@ -401,7 +392,6 @@ type ValidatorPageData struct {
 	Watchlist                                []*TaggedValidators
 	SubscriptionFlash                        []interface{}
 	User                                     *User
-	AverageAttestationInclusionDistance      float64
 	AttestationInclusionEffectiveness        float64
 	CsrfField                                template.HTML
 	NetworkStats                             *IndexPageData
@@ -617,7 +607,7 @@ type VotesVisChartData struct {
 	Validators pq.Int64Array `db:"validators" json:"validators"`
 }
 
-// BlockPageData is a struct block data used in the block page
+// BlockPageData is a struct block data used in the block/slot page
 type BlockPageData struct {
 	Epoch                  uint64  `db:"epoch"`
 	EpochFinalized         bool    `db:"epoch_finalized"`
@@ -679,6 +669,7 @@ type BlockPageData struct {
 	AttesterSlashings []*BlockPageAttesterSlashing
 	ProposerSlashings []*BlockPageProposerSlashing
 	SyncCommittee     []uint64 // TODO: Setting it to contain the validator index
+	BlobSidecars      []*BlockPageBlobSidecar
 
 	Tags       TagMetadataSlice `db:"tags"`
 	IsValidMev bool             `db:"is_valid_mev"`
@@ -807,6 +798,16 @@ type BlockPageProposerSlashing struct {
 	Header2Signature  []byte `db:"header2_signature"`
 }
 
+// BlockPageBlobSidecar holds data of blob-sidecars of the corresponding block
+type BlockPageBlobSidecar struct {
+	BlockSlot         uint64 `db:"block_slot"`
+	BlockRoot         []byte `db:"block_root"`
+	Index             uint64 `db:"index"`
+	KzgCommitment     []byte `db:"kzg_commitment"`
+	KzgProof          []byte `db:"kzg_proof"`
+	BlobVersionedHash []byte `db:"blob_versioned_hash"`
+}
+
 // DataTableResponse is a struct to hold data for data table responses
 type DataTableResponse struct {
 	Draw            uint64          `json:"draw"`
@@ -886,7 +887,7 @@ type SearchAheadSlotsResult []struct {
 
 // SearchAheadBlockssResult is a struct to hold the search ahead block results
 type SearchAheadBlocksResult []struct {
-	Block uint64 `json:"block,omitempty"`
+	Block string `json:"block,omitempty"`
 	Hash  string `json:"hash,omitempty"`
 }
 
@@ -1002,16 +1003,22 @@ type DashboardValidatorBalanceHistory struct {
 
 // ValidatorEarnings is a struct to hold the earnings of one or multiple validators
 
+type ClEl struct {
+	El    decimal.Decimal
+	Cl    decimal.Decimal
+	Total decimal.Decimal
+}
+
 type ClElInt64 struct {
 	El    int64
 	Cl    int64
-	Total int64
+	Total float64
 }
 
 type ClElFloat64 struct {
 	El    float64
 	Cl    float64
-	Total float64
+	Total float64 // in ClCurrency if El and Cl have different currencies
 }
 
 type ValidatorProposalData struct {
@@ -1029,11 +1036,11 @@ type ValidatorProposalData struct {
 }
 
 type ValidatorEarnings struct {
-	Income1d                ClElInt64     `json:"income1d"`
-	Income7d                ClElInt64     `json:"income7d"`
-	Income31d               ClElInt64     `json:"income31d"`
-	IncomeToday             ClElInt64     `json:"incomeToday"`
-	IncomeTotal             ClElInt64     `json:"incomeTotal"`
+	Income1d                ClEl          `json:"income1d"`
+	Income7d                ClEl          `json:"income7d"`
+	Income31d               ClEl          `json:"income31d"`
+	IncomeToday             ClEl          `json:"incomeToday"`
+	IncomeTotal             ClEl          `json:"incomeTotal"`
 	Apr7d                   ClElFloat64   `json:"apr"`
 	Apr31d                  ClElFloat64   `json:"apr31d"`
 	Apr365d                 ClElFloat64   `json:"apr365d"`
@@ -1312,6 +1319,12 @@ type MobilePricing struct {
 	Plankton             string
 	Goldfish             string
 	Whale                string
+	Guppy                string
+	GuppyYearly          string
+	Dolphin              string
+	DolphinYearly        string
+	Orca                 string
+	OrcaYearly           string
 	ActiveMobileStoreSub bool
 }
 
@@ -1319,6 +1332,13 @@ type StakeWithUsPageData struct {
 	FlashMessage string
 	RecaptchaKey string
 }
+
+type PasswordResetNotAllowedError struct{}
+
+func (e *PasswordResetNotAllowedError) Error() string {
+	return "password reset not allowed for this account"
+}
+
 type RateLimitError struct {
 	TimeLeft time.Duration
 }
@@ -1577,6 +1597,7 @@ type Eth1AddressPageData struct {
 	BlocksMinedTable   *DataTableResponse
 	UnclesMinedTable   *DataTableResponse
 	TransactionsTable  *DataTableResponse
+	BlobTxnsTable      *DataTableResponse
 	InternalTxnsTable  *DataTableResponse
 	Erc20Table         *DataTableResponse
 	Erc721Table        *DataTableResponse
@@ -1586,6 +1607,15 @@ type Eth1AddressPageData struct {
 	Tabs               []Eth1AddressPageTabs
 }
 
+type ContractInteractionType uint8
+
+const (
+	CONTRACT_NONE        ContractInteractionType = 0
+	CONTRACT_CREATION    ContractInteractionType = 1
+	CONTRACT_PRESENT     ContractInteractionType = 2
+	CONTRACT_DESTRUCTION ContractInteractionType = 3
+)
+
 type Eth1AddressPageTabs struct {
 	Id   string
 	Href string
@@ -1594,11 +1624,13 @@ type Eth1AddressPageTabs struct {
 }
 
 type Eth1AddressMetadata struct {
-	Balances   []*Eth1AddressBalance
-	ERC20      *ERC20Metadata
-	Name       string
-	Tags       []template.HTML
-	EthBalance *Eth1AddressBalance
+	Balances                []*Eth1AddressBalance
+	ERC20TokenLimit         uint64
+	ERC20TokenLimitExceeded bool
+	ERC20                   *ERC20Metadata
+	Name                    string
+	Tags                    []template.HTML
+	EthBalance              *Eth1AddressBalance
 }
 
 type Eth1AddressBalance struct {
@@ -1650,6 +1682,7 @@ type Eth1TokenPageData struct {
 	Holders          template.HTML `json:"holders"`
 	Transfers        template.HTML `json:"transfers"`
 	Price            template.HTML `json:"price"`
+	Supply           template.HTML `json:"supply"`
 	MarketCap        template.HTML `json:"marketCap"`
 	DilutedMarketCap template.HTML `json:"dilutedMarketCap"`
 	Decimals         template.HTML `json:"decimals"`
@@ -1658,6 +1691,19 @@ type Eth1TokenPageData struct {
 	SocialProfiles   template.HTML `json:"socialProfiles"`
 	TransfersTable   *DataTableResponse
 	HoldersTable     *DataTableResponse
+}
+
+type ITransaction struct {
+	From      template.HTML
+	To        template.HTML
+	Amount    template.HTML
+	TracePath template.HTML
+	Advanced  bool
+	Gas       struct {
+		Limit uint64
+		// Usage    uint64
+		// UsedPerc float64
+	}
 }
 
 type Transfer struct {
@@ -1681,7 +1727,7 @@ type EpochInfo struct {
 type Eth1TxData struct {
 	From         common.Address
 	To           *common.Address
-	InternalTxns []Transfer
+	InternalTxns []ITransaction
 	FromName     string
 	ToName       string
 	Gas          struct {
@@ -1693,6 +1739,9 @@ type Eth1TxData struct {
 		Limit          uint64
 		TxFee          []byte
 		EffectiveFee   []byte
+		BlobGasUsed    uint64
+		BlobGasPrice   []byte
+		BlobTxFee      []byte
 	}
 	Epoch                       EpochInfo
 	TypeFormatted               string
@@ -1715,6 +1764,7 @@ type Eth1TxData struct {
 	DepositContractInteractions []DepositContractInteraction
 	CurrentEtherPrice           template.HTML
 	HistoricalEtherPrice        template.HTML
+	BlobHashes                  [][]byte
 }
 
 type Eth1EventData struct {
@@ -1805,6 +1855,8 @@ type Eth1BlockPageData struct {
 	PreviousBlock         uint64
 	NextBlock             uint64
 	TxCount               uint64
+	BlobTxCount           uint64
+	BlobCount             uint64
 	WithdrawalCount       uint64
 	UncleCount            uint64
 	Hash                  string
@@ -1824,6 +1876,11 @@ type Eth1BlockPageData struct {
 	Difficulty            *big.Int
 	BaseFeePerGas         *big.Int
 	BurnedFees            *big.Int
+	BurnedTxFees          *big.Int
+	BurnedBlobFees        *big.Int
+	BlobGasUsed           uint64
+	BlobGasPrice          *big.Int
+	ExcessBlobGas         uint64
 	Extra                 string
 	Txs                   []Eth1BlockPageTransaction
 	Uncles                []Eth1BlockPageData
@@ -2066,16 +2123,16 @@ type BroadcastStatusPageData struct {
 }
 
 type ValidatorIncomePerformance struct {
-	ClIncome1d    int64 `db:"cl_performance_1d"`
-	ClIncome7d    int64 `db:"cl_performance_7d"`
-	ClIncome31d   int64 `db:"cl_performance_31d"`
-	ClIncome365d  int64 `db:"cl_performance_365d"`
-	ClIncomeTotal int64 `db:"cl_performance_total"`
-	ElIncome1d    int64 `db:"el_performance_1d"`
-	ElIncome7d    int64 `db:"el_performance_7d"`
-	ElIncome31d   int64 `db:"el_performance_31d"`
-	ElIncome365d  int64 `db:"el_performance_365d"`
-	ElIncomeTotal int64 `db:"el_performance_total"`
+	ClIncomeWei1d    decimal.Decimal `db:"cl_performance_wei_1d"`
+	ClIncomeWei7d    decimal.Decimal `db:"cl_performance_wei_7d"`
+	ClIncomeWei31d   decimal.Decimal `db:"cl_performance_wei_31d"`
+	ClIncomeWei365d  decimal.Decimal `db:"cl_performance_wei_365d"`
+	ClIncomeWeiTotal decimal.Decimal `db:"cl_performance_wei_total"`
+	ElIncomeWei1d    decimal.Decimal `db:"el_performance_wei_1d"`
+	ElIncomeWei7d    decimal.Decimal `db:"el_performance_wei_7d"`
+	ElIncomeWei31d   decimal.Decimal `db:"el_performance_wei_31d"`
+	ElIncomeWei365d  decimal.Decimal `db:"el_performance_wei_365d"`
+	ElIncomeWeiTotal decimal.Decimal `db:"el_performance_wei_total"`
 }
 
 type ValidatorProposalInfo struct {

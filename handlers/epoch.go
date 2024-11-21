@@ -3,15 +3,17 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/services"
-	"eth2-exporter/templates"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -29,7 +31,7 @@ func Epoch(w http.ResponseWriter, r *http.Request) {
 	var epochFutureTemplate = templates.GetTemplate(epochFutureTemplateFiles...)
 	var epochNotFoundTemplate = templates.GetTemplate(epochNotFoundTemplateFiles...)
 
-	const MaxEpochValue = 4294967296 // we only render a page for epochs up to this value
+	const MaxEpochValue = math.MaxUint32 + 1 // we only render a page for epochs up to this value
 
 	w.Header().Set("Content-Type", "text/html")
 	vars := mux.Vars(r)
@@ -79,20 +81,21 @@ func Epoch(w http.ResponseWriter, r *http.Request) {
 		}
 
 		//Create placeholder structs
-		blocks := make([]*types.IndexPageDataBlocks, utils.Config.Chain.Config.SlotsPerEpoch)
+		blocks := make([]*types.IndexPageDataBlocks, utils.Config.Chain.ClConfig.SlotsPerEpoch)
 		for i := range blocks {
-			slot := uint64(i) + (epoch * utils.Config.Chain.Config.SlotsPerEpoch)
+			slot := uint64(i) + (epoch * utils.Config.Chain.ClConfig.SlotsPerEpoch)
 			block := types.IndexPageDataBlocks{
 				Epoch:  epoch,
 				Slot:   slot,
 				Ts:     utils.SlotToTime(slot),
 				Status: 4,
 			}
-			blocks[31-i] = &block
+			n := int(utils.Config.Chain.ClConfig.SlotsPerEpoch) - 1 - i
+			blocks[n] = &block
 		}
 		epochPageData = types.EpochPageData{
 			Epoch:         epoch,
-			BlocksCount:   utils.Config.Chain.Config.SlotsPerEpoch,
+			BlocksCount:   utils.Config.Chain.ClConfig.SlotsPerEpoch,
 			PreviousEpoch: epoch - 1,
 			NextEpoch:     epoch + 1,
 			Ts:            utils.EpochToTime(epoch),
@@ -116,7 +119,7 @@ func Epoch(w http.ResponseWriter, r *http.Request) {
 			blocks.parentroot, 
 			blocks.attestationscount, 
 			blocks.depositscount,
-			blocks.withdrawalcount, 
+			COALESCE(blocks.withdrawalcount,0) as withdrawalcount, 
 			blocks.voluntaryexitscount, 
 			blocks.proposerslashingscount, 
 			blocks.attesterslashingscount,

@@ -3,16 +3,20 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/templates"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+
+	"github.com/lib/pq"
 )
 
 // Will return the slots page
@@ -47,64 +51,63 @@ func SlotsData(w http.ResponseWriter, r *http.Request) {
 
 	draw, err := strconv.ParseUint(q.Get("draw"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables data parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables draw parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter draw", http.StatusBadRequest)
 		return
 	}
 	start, err := strconv.ParseUint(q.Get("start"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables start parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables start parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter start", http.StatusBadRequest)
 		return
 	}
 	length, err := strconv.ParseUint(q.Get("length"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables length parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables length parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter length", http.StatusBadRequest)
 		return
 	}
 
 	tableData, err := GetSlotsTableData(draw, start, length, search, searchForEmpty)
 	if err != nil {
 		logger.Errorf("error rendering blocks table data: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(tableData)
 	if err != nil {
 		logger.Errorf("error enconding json response for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 }
 
 func GetSlotsTableData(draw, start, length uint64, search string, searchForEmpty bool) (*types.DataTableResponse, error) {
-	var totalCount uint64
 	var filteredCount uint64
 	var blocks []*types.BlocksPageDataBlocks
 
-	err := db.ReaderDb.Get(&totalCount, "SELECT COALESCE(MAX(slot),0) FROM blocks")
-	if err != nil {
-		return nil, err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	latestSlot := services.LatestSlot()
 
 	if length > 100 {
 		length = 100
 	}
 
 	if search == "" && !searchForEmpty {
-		filteredCount = totalCount
-		startSlot := totalCount - start
-		endSlot := totalCount - start - length + 1
+		filteredCount = latestSlot
+		startSlot := latestSlot - start
+		endSlot := latestSlot - start - length + 1
 
 		if startSlot > 9223372036854775807 {
-			startSlot = totalCount
+			startSlot = latestSlot
 		}
 		if endSlot > 9223372036854775807 {
 			endSlot = 0
 		}
-		err = db.ReaderDb.Select(&blocks, `
+		err := db.ReaderDb.Select(&blocks, `
 			SELECT 
 				blocks.epoch, 
 				blocks.slot, 
@@ -113,7 +116,7 @@ func GetSlotsTableData(draw, start, length uint64, search string, searchForEmpty
 				blocks.parentroot, 
 				blocks.attestationscount, 
 				blocks.depositscount,
-				blocks.withdrawalcount, 
+				COALESCE(blocks.withdrawalcount,0) as withdrawalcount, 
 				blocks.voluntaryexitscount, 
 				blocks.proposerslashingscount, 
 				blocks.attesterslashingscount, 
@@ -162,8 +165,18 @@ func GetSlotsTableData(draw, start, length uint64, search string, searchForEmpty
 			searchBlocksQrys := []string{}
 			searchProposersQrys := []string{}
 
-			args = append(args, "%"+search+"%")
-			searchBlocksQrys = append(searchBlocksQrys, fmt.Sprintf(`(select slot from blocks where graffiti_text ilike $%d order by slot desc limit %d)`, len(args), searchLimit))
+			ilikeSearch := "%" + search + "%"
+			var graffiti [][]byte
+			statsQry := `SELECT DISTINCT(graffiti) FROM graffiti_stats WHERE graffiti_text ILIKE $1`
+			err := db.ReaderDb.SelectContext(ctx, &graffiti, statsQry, ilikeSearch)
+			if err != nil {
+				return nil, fmt.Errorf("error retrieving graffiti stats data (with search): %w", err)
+			}
+
+			args = append(args, pq.ByteaArray(graffiti))
+			searchBlocksQrys = append(searchBlocksQrys, fmt.Sprintf(`(select slot from blocks where graffiti = ANY($%d) order by slot desc limit %d)`, len(args), searchLimit))
+
+			args = append(args, ilikeSearch)
 			searchProposersQrys = append(searchProposersQrys, fmt.Sprintf(`(select publickey as pubkey from validator_names where name ilike $%d limit %d)`, len(args), searchLimit))
 
 			searchNumber, err := strconv.ParseUint(search, 10, 64)
@@ -174,12 +187,12 @@ func GetSlotsTableData(draw, start, length uint64, search string, searchForEmpty
 				searchProposersQrys = append(searchProposersQrys, fmt.Sprintf(`(select pubkey from validators where validatorindex = $%d limit %d)`, len(args), searchLimit))
 			}
 			if searchPubkeyExactRE.MatchString(search) {
-				// if the search-string is a valid hex-string but not long enough for a full publickey we look for prefix
+				// if the search-string looks like a publickey we look for exact match
 				pubkey := strings.ToLower(strings.Replace(search, "0x", "", -1))
 				args = append(args, pubkey)
 				searchProposersQrys = append(searchProposersQrys, fmt.Sprintf(`(select pubkey from validators where pubkeyhex = $%d limit %d)`, len(args), searchLimit))
 			} else if len(search) > 2 && searchPubkeyLikeRE.MatchString(search) {
-				// if the search-string looks like a publickey we look for exact match
+				// if the search-string is a valid hex-string but not long enough for a full publickey we look for prefix
 				pubkey := strings.ToLower(strings.Replace(search, "0x", "", -1))
 				args = append(args, pubkey+"%")
 				searchProposersQrys = append(searchProposersQrys, fmt.Sprintf(`(select pubkey from validators where pubkeyhex like $%d limit %d)`, len(args), searchLimit))
@@ -203,7 +216,7 @@ func GetSlotsTableData(draw, start, length uint64, search string, searchForEmpty
 				blocks.parentroot, 
 				blocks.attestationscount, 
 				blocks.depositscount,
-				blocks.withdrawalcount,
+				COALESCE(blocks.withdrawalcount,0) as withdrawalcount,
 				blocks.voluntaryexitscount, 
 				blocks.proposerslashingscount, 
 				blocks.attesterslashingscount, 
@@ -220,9 +233,7 @@ func GetSlotsTableData(draw, start, length uint64, search string, searchForEmpty
 			LEFT JOIN (select count(*) from matched_slots) cnt(total_count) ON true
 			ORDER BY slot DESC LIMIT $%v OFFSET $%v`, searchBlocksQry, len(args)-1, len(args))
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		err = db.ReaderDb.SelectContext(ctx, &blocks, qry, args...)
+		err := db.ReaderDb.SelectContext(ctx, &blocks, qry, args...)
 		if err != nil {
 			return nil, fmt.Errorf("error retrieving block data (with search): %w", err)
 		}
@@ -235,42 +246,29 @@ func GetSlotsTableData(draw, start, length uint64, search string, searchForEmpty
 
 	tableData := make([][]interface{}, len(blocks))
 	for i, b := range blocks {
-		if b.Slot == 0 {
-			tableData[i] = []interface{}{
-				utils.FormatEpoch(b.Epoch),
-				utils.FormatBlockSlot(b.Slot),
-				template.HTML("<span class=\"badge text-dark\" style=\"background: rgba(179, 159, 70, 0.8) none repeat scroll 0% 0%;\">Genesis</span>"),
-				utils.FormatTimestamp(utils.SlotToTime(b.Slot).Unix()),
-				template.HTML("N/A"),
-				b.Attestations,
-				template.HTML(fmt.Sprintf("%v / %v", b.Deposits, b.Withdrawals)),
-				fmt.Sprintf("%v / %v", b.Proposerslashings, b.Attesterslashings),
-				b.Exits,
-				b.Votes,
-				fmt.Sprintf("%.2f", b.SyncAggParticipation*100.0),
-				utils.FormatGraffitiAsLink(b.Graffiti),
-			}
-		} else {
-			tableData[i] = []interface{}{
-				utils.FormatEpoch(b.Epoch),
-				utils.FormatBlockSlot(b.Slot),
-				utils.FormatBlockStatus(b.Status),
-				utils.FormatTimestamp(utils.SlotToTime(b.Slot).Unix()),
-				utils.FormatValidatorWithName(b.Proposer, b.ProposerName),
-				b.Attestations,
-				template.HTML(fmt.Sprintf("%v / %v", b.Deposits, b.Withdrawals)),
-				fmt.Sprintf("%v / %v", b.Proposerslashings, b.Attesterslashings),
-				b.Exits,
-				b.Votes,
-				fmt.Sprintf("%.2f", b.SyncAggParticipation*100.0),
-				utils.FormatGraffitiAsLink(b.Graffiti),
-			}
+		validatorName := template.HTML("N/A")
+		if b.Slot > 0 {
+			validatorName = utils.FormatValidatorWithName(b.Proposer, b.ProposerName)
+		}
+		tableData[i] = []interface{}{
+			utils.FormatEpoch(b.Epoch),
+			utils.FormatBlockSlot(b.Slot),
+			utils.FormatBlockStatus(b.Status, b.Slot),
+			utils.FormatTimestamp(utils.SlotToTime(b.Slot).Unix()),
+			validatorName,
+			b.Attestations,
+			template.HTML(fmt.Sprintf("%v / %v", b.Deposits, b.Withdrawals)),
+			fmt.Sprintf("%v / %v", b.Proposerslashings, b.Attesterslashings),
+			b.Exits,
+			b.Votes,
+			fmt.Sprintf("%.2f", b.SyncAggParticipation*100.0),
+			utils.FormatGraffitiAsLink(b.Graffiti),
 		}
 	}
 
 	data := &types.DataTableResponse{
 		Draw:            draw,
-		RecordsTotal:    totalCount,
+		RecordsTotal:    latestSlot,
 		RecordsFiltered: filteredCount,
 		Data:            tableData,
 		DisplayStart:    start,

@@ -5,15 +5,17 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
-	"eth2-exporter/cache"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"strings"
 	"time"
 
+	"github.com/gobitfly/eth2-beaconchain-explorer/cache"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -21,8 +23,8 @@ import (
 var FrontendReaderDB *sqlx.DB
 var FrontendWriterDB *sqlx.DB
 
-func MustInitFrontendDB(writer *types.DatabaseConfig, reader *types.DatabaseConfig) {
-	FrontendWriterDB, FrontendReaderDB = mustInitDB(writer, reader)
+func MustInitFrontendDB(writer *types.DatabaseConfig, reader *types.DatabaseConfig, driverName string, databaseBrand string) {
+	FrontendWriterDB, FrontendReaderDB = mustInitDB(writer, reader, driverName, databaseBrand)
 }
 
 // GetUserEmailById returns the email of a user.
@@ -71,7 +73,25 @@ func GetUserIdByApiKey(apiKey string) (*types.UserWithPremium, error) {
 		return cached.(*types.UserWithPremium), nil
 	}
 	data := &types.UserWithPremium{}
-	row := FrontendWriterDB.QueryRow("SELECT id, (SELECT product_id from users_app_subscriptions WHERE user_id = users.id AND active = true order by id desc limit 1) FROM users WHERE api_key = $1", apiKey)
+	row := FrontendWriterDB.QueryRow(`
+		SELECT id, (
+			SELECT product_id 
+			FROM users_app_subscriptions 
+			WHERE user_id = users.id AND active = true AND product_id IN ('orca.yearly', 'orca', 'dolphin.yearly', 'dolphin', 'guppy.yearly', 'guppy', 'whale', 'goldfish', 'plankton')
+			ORDER BY CASE product_id
+				WHEN 'orca.yearly'    THEN  1
+				WHEN 'orca'           THEN  2
+				WHEN 'dolphin.yearly' THEN  3
+				WHEN 'dolphin'        THEN  4
+				WHEN 'guppy.yearly'   THEN  5
+				WHEN 'guppy'          THEN  6
+				WHEN 'whale'          THEN  7
+				WHEN 'goldfish'       THEN  8
+				WHEN 'plankton'       THEN  9
+				ELSE                       10  -- For any other product_id values
+			END, id desc limit 1
+		) FROM users 
+		WHERE api_key = $1`, apiKey)
 	err := row.Scan(&data.ID, &data.Product)
 	if err != nil {
 		return nil, err
@@ -92,8 +112,13 @@ func DeleteUserById(id uint64) error {
 }
 
 // UpdatePassword updates the password of a user.
-func UpdatePassword(userId uint64, hash []byte) error {
-	_, err := FrontendWriterDB.Exec("UPDATE users SET password = $1 WHERE id = $2", hash, userId)
+func UpdatePassword(userId uint64, cleartextPassword string) error {
+	hash, err := bcrypt.GenerateFromPassword([]byte(cleartextPassword), 10)
+	if err != nil {
+		return err
+	}
+
+	_, err = FrontendWriterDB.Exec("UPDATE users SET password = $1, password_reset_hash = NULL WHERE id = $2", hash, userId)
 	return err
 }
 
@@ -387,12 +412,12 @@ func InsertMobileSubscription(tx *sql.Tx, userID uint64, paymentDetails types.Mo
 	var err error
 	if tx == nil {
 		_, err = FrontendWriterDB.Exec("INSERT INTO users_app_subscriptions (user_id, product_id, price_micros, currency, created_at, updated_at, validate_remotely, active, store, receipt, expires_at, reject_reason, receipt_hash, subscription_id) VALUES("+
-			"$1, $2, $3, $4, TO_TIMESTAMP($5), TO_TIMESTAMP($6), $7, $8, $9, $10, TO_TIMESTAMP($11), $12, $13, $14);",
+			"$1, $2, $3, $4, TO_TIMESTAMP($5), TO_TIMESTAMP($6), $7, $8, $9, $10, TO_TIMESTAMP($11), $12, $13, $14) ON CONFLICT(receipt_hash) DO UPDATE SET product_id = $2, active = $7, updated_at = TO_TIMESTAMP($5);",
 			userID, paymentDetails.ProductID, paymentDetails.PriceMicros, paymentDetails.Currency, nowTs, nowTs, paymentDetails.Valid, paymentDetails.Valid, store, receipt, expiration, rejectReson, receiptHash, extSubscriptionId,
 		)
 	} else {
 		_, err = tx.Exec("INSERT INTO users_app_subscriptions (user_id, product_id, price_micros, currency, created_at, updated_at, validate_remotely, active, store, receipt, expires_at, reject_reason, receipt_hash, subscription_id) VALUES("+
-			"$1, $2, $3, $4, TO_TIMESTAMP($5), TO_TIMESTAMP($6), $7, $8, $9, $10, TO_TIMESTAMP($11), $12, $13, $14);",
+			"$1, $2, $3, $4, TO_TIMESTAMP($5), TO_TIMESTAMP($6), $7, $8, $9, $10, TO_TIMESTAMP($11), $12, $13, $14) ON CONFLICT(receipt_hash) DO UPDATE SET product_id = $2, active = $7, updated_at = TO_TIMESTAMP($5);",
 			userID, paymentDetails.ProductID, paymentDetails.PriceMicros, paymentDetails.Currency, nowTs, nowTs, paymentDetails.Valid, paymentDetails.Valid, store, receipt, expiration, rejectReson, receiptHash, extSubscriptionId,
 		)
 	}
@@ -428,8 +453,22 @@ type PremiumResult struct {
 
 func GetUserPremiumPackage(userID uint64) (PremiumResult, error) {
 	var pkg PremiumResult
-	err := FrontendWriterDB.Get(&pkg,
-		"SELECT COALESCE(product_id, '') as product_id, COALESCE(store, '') as store from users_app_subscriptions WHERE user_id = $1 AND active = true order by id desc",
+	err := FrontendWriterDB.Get(&pkg, `
+		SELECT COALESCE(product_id, '') as product_id, COALESCE(store, '') as store 
+		from users_app_subscriptions 
+		WHERE user_id = $1 AND active = true AND product_id IN ('orca.yearly', 'orca', 'dolphin.yearly', 'dolphin', 'guppy.yearly', 'guppy', 'whale', 'goldfish', 'plankton')
+		order by CASE product_id
+			WHEN 'orca.yearly'    THEN  1
+			WHEN 'orca'           THEN  2
+			WHEN 'dolphin.yearly' THEN  3
+			WHEN 'dolphin'        THEN  4
+			WHEN 'guppy.yearly'   THEN  5
+			WHEN 'guppy'          THEN  6
+			WHEN 'whale'          THEN  7
+			WHEN 'goldfish'       THEN  8
+			WHEN 'plankton'       THEN  9
+			ELSE                       10  -- For any other product_id values
+		END, id desc`,
 		userID,
 	)
 	return pkg, err
@@ -437,7 +476,26 @@ func GetUserPremiumPackage(userID uint64) (PremiumResult, error) {
 
 func GetUserPremiumSubscription(id uint64) (types.UserPremiumSubscription, error) {
 	userSub := types.UserPremiumSubscription{}
-	err := FrontendWriterDB.Get(&userSub, "SELECT user_id, store, active, COALESCE(product_id, '') as product_id, COALESCE(reject_reason, '') as reject_reason FROM users_app_subscriptions WHERE user_id = $1 ORDER BY active desc, id desc LIMIT 1", id)
+	err := FrontendWriterDB.Get(&userSub, `
+	SELECT user_id, store, active, COALESCE(product_id, '') as product_id, COALESCE(reject_reason, '') as reject_reason 
+	FROM users_app_subscriptions  
+	WHERE user_id = $1 AND product_id IN ('orca.yearly', 'orca', 'dolphin.yearly', 'dolphin', 'guppy.yearly', 'guppy', 'whale', 'goldfish', 'plankton')
+	ORDER BY 
+		active desc, 
+		CASE product_id
+			WHEN 'orca.yearly'    THEN  1
+			WHEN 'orca'           THEN  2
+			WHEN 'dolphin.yearly' THEN  3
+			WHEN 'dolphin'        THEN  4
+			WHEN 'guppy.yearly'   THEN  5
+			WHEN 'guppy'          THEN  6
+			WHEN 'whale'          THEN  7
+			WHEN 'goldfish'       THEN  8
+			WHEN 'plankton'       THEN  9
+			ELSE                       10  -- For any other product_id values
+		END, 
+		id desc
+	LIMIT 1`, id)
 	return userSub, err
 }
 
@@ -445,7 +503,7 @@ func GetAllAppSubscriptions() ([]*types.PremiumData, error) {
 	data := []*types.PremiumData{}
 
 	err := FrontendWriterDB.Select(&data,
-		"SELECT id, receipt, store, active, expires_at, product_id from users_app_subscriptions WHERE validate_remotely = true order by id desc",
+		"SELECT id, receipt, store, active, expires_at, product_id, user_id, validate_remotely from users_app_subscriptions WHERE validate_remotely = true order by id desc",
 	)
 
 	return data, err
@@ -486,6 +544,21 @@ func UpdateUserSubscription(tx *sql.Tx, id uint64, valid bool, expiration int64,
 	} else {
 		_, err = tx.Exec("UPDATE users_app_subscriptions SET active = $1, updated_at = TO_TIMESTAMP($2), expires_at = TO_TIMESTAMP($3), reject_reason = $4 WHERE id = $5;",
 			valid, nowTs, expiration, rejectReason, id,
+		)
+	}
+
+	return err
+}
+
+func UpdateUserSubscriptionProduct(tx *sql.Tx, id uint64, productID string) error {
+	var err error
+	if tx == nil {
+		_, err = FrontendWriterDB.Exec("UPDATE users_app_subscriptions SET product_id = $1 WHERE id = $2;",
+			productID, id,
+		)
+	} else {
+		_, err = tx.Exec("UPDATE users_app_subscriptions SET product_id = $1 WHERE id = $2",
+			productID, id,
 		)
 	}
 
@@ -606,11 +679,11 @@ func getMachineStatsGap(resultCount uint64) int {
 }
 
 func GetHistoricalPrice(chainId uint64, currency string, day uint64) (float64, error) {
-	if chainId != 1 {
+	if chainId != 1 && chainId != 100 {
 		// Don't show a historical price for testnets
 		return 0.0, nil
 	}
-	if currency == "ETH" || currency == "LYX" {
+	if currency == utils.Config.Frontend.ClCurrency {
 		currency = "USD"
 	}
 	currency = strings.ToLower(currency)
@@ -642,14 +715,14 @@ func GetUserAPIKeyStatistics(apikey *string) (*types.ApiStatistics, error) {
 		FROM 
 			api_statistics 
 		WHERE 
-			ts > NOW() - INTERVAL '1 day' AND apikey = $1
+			ts >= DATE_TRUNC('day', NOW()) AND apikey = $1 AND bucket = 'default'
 	), (
 		SELECT 
 			COALESCE(SUM(count),0) as monthly 
 		FROM 
 			api_statistics 
 		WHERE 
-			ts > NOW() - INTERVAL '1 month' AND apikey = $1
+			ts >= DATE_TRUNC('month', NOW()) AND apikey = $1 AND bucket = 'default'
 	)`
 
 	err := FrontendWriterDB.Get(stats, query, apikey)

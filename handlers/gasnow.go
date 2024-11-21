@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/price"
-	"eth2-exporter/services"
-	"eth2-exporter/templates"
-	"eth2-exporter/utils"
 	"fmt"
 	"net/http"
 	"sort"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/price"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 // Will return the gas now page
@@ -23,7 +24,7 @@ func GasNow(w http.ResponseWriter, r *http.Request) {
 	data := InitPageData(w, r, "gasnow", "/gasnow", fmt.Sprintf("%v Gwei", 34), templateFiles)
 
 	now := time.Now().Truncate(time.Minute)
-	lastWeek := time.Now().Truncate(time.Minute).Add(-time.Hour * 24 * 7)
+	lastWeek := time.Now().Truncate(time.Minute).Add(-utils.Week)
 
 	history, err := db.BigtableClient.GetGasNowHistory(now, lastWeek)
 	if err != nil {
@@ -73,21 +74,21 @@ func GasNowData(w http.ResponseWriter, r *http.Request) {
 	gasnowData := services.LatestGasNowData()
 	if gasnowData == nil {
 		utils.LogError(nil, "error obtaining latest gas now data 'nil'", 0)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	currency := GetCurrency(r)
-	if currency == "ETH" || currency == "LYX" {
+	if currency == utils.Config.Frontend.ElCurrency {
 		currency = "USD"
 	}
-	gasnowData.Data.Price = price.GetEthPrice(currency)
+	gasnowData.Data.Price = price.GetPrice(utils.Config.Frontend.ElCurrency, currency)
 	gasnowData.Data.Currency = currency
 
 	err := json.NewEncoder(w).Encode(gasnowData)
 	if err != nil {
 		logger.Errorf("error serializing json data for API %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 }

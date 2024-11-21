@@ -1,6 +1,7 @@
 {{ define "js" }}
   <script type="text/javascript" src="/js/datatables.min.js"></script>
   <script type="text/javascript" src="/js/datatable_input.js"></script>
+  <script type="text/javascript" src="/js/datatable_loader.js"></script>
   <script type="text/javascript" src="/js/highcharts/highstock.min.js"></script>
   <script type="text/javascript" src="/js/highcharts/highcharts-global-options.js"></script>
   <script>
@@ -8,6 +9,7 @@
       var usp = new URLSearchParams(window.location.search)
       var q = usp.get("q")
       var tblWithdrawals = $("#withdrawals").DataTable({
+        searchDelay: 0,
         processing: true,
         serverSide: true,
         ordering: false,
@@ -54,7 +56,7 @@
         },
         order: [[2, "desc"]],
         searching: true,
-        ajax: "/validators/withdrawals/data",
+        ajax: dataTableLoader("/validators/withdrawals/data"),
         pageLength: 10,
         pagingType: "input",
         preDrawCallback: function () {
@@ -81,6 +83,7 @@
       }
 
       var tblBLS = $("#blsChange").DataTable({
+        searchDelay: 0,
         processing: true,
         serverSide: true,
         ordering: false,
@@ -127,7 +130,7 @@
         },
         order: [[2, "desc"]],
         searching: true,
-        ajax: "/validators/withdrawals/bls",
+        ajax: dataTableLoader("/validators/withdrawals/bls"),
         pageLength: 10,
         pagingType: "input",
         preDrawCallback: function () {

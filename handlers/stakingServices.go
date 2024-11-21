@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"eth2-exporter/templates"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 func StakingServices(w http.ResponseWriter, r *http.Request) {
@@ -22,7 +23,7 @@ func StakingServices(w http.ResponseWriter, r *http.Request) {
 	pageData.FlashMessage, err = utils.GetFlash(w, r, "stake_flash")
 	if err != nil {
 		logger.Errorf("error retrieving flashes for advertisewithusform %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 	data.Data = pageData

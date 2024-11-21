@@ -2,9 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/utils"
 	"fmt"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/gorilla/context"
 )
@@ -50,7 +51,7 @@ func SetAutoContentType(w http.ResponseWriter, r *http.Request) {
 func ErrorOrJSONResponse(w http.ResponseWriter, r *http.Request, errorText string, statusCode int) {
 	if IsMobileAuth(r) {
 		w.WriteHeader(statusCode)
-		SendErrorResponse(w, r.URL.String(), errorText)
+		SendBadRequestResponse(w, r.URL.String(), errorText)
 	} else {
 		http.Error(w, errorText, statusCode)
 	}

@@ -223,7 +223,7 @@ $(document).ready(function () {
 
   // set maxParallelRequests to number of datasets queried in each search
   // make sure this is set in every one bloodhound object
-  let requestNum = 9
+  let requestNum = 11
   var timeWait = 0
 
   // used to overwrite Bloodhounds "transport._get" function which handles the rateLimitWait parameter
@@ -386,6 +386,34 @@ $(document).ready(function () {
   })
   bhValidatorsByAddress.remote.transport._get = debounce(bhValidatorsByAddress.remote.transport, bhValidatorsByAddress.remote.transport._get)
 
+  var bhValidatorsByWithdrawalCredential = new Bloodhound({
+    datumTokenizer: Bloodhound.tokenizers.whitespace,
+    queryTokenizer: Bloodhound.tokenizers.whitespace,
+    identify: function (obj) {
+      return obj.withdrawalcredentials
+    },
+    remote: {
+      url: "/search/count_indexed_validators_by_withdrawal_credential/%QUERY",
+      wildcard: "%QUERY",
+      maxPendingRequests: requestNum,
+    },
+  })
+  bhValidatorsByWithdrawalCredential.remote.transport._get = debounce(bhValidatorsByWithdrawalCredential.remote.transport, bhValidatorsByWithdrawalCredential.remote.transport._get)
+
+  var bhPubkey = new Bloodhound({
+    datumTokenizer: Bloodhound.tokenizers.whitespace,
+    queryTokenizer: Bloodhound.tokenizers.whitespace,
+    identify: function (obj) {
+      return obj.index
+    },
+    remote: {
+      url: "/search/validators_by_pubkey/%QUERY",
+      wildcard: "%QUERY",
+      maxPendingRequests: requestNum,
+    },
+  })
+  bhPubkey.remote.transport._get = debounce(bhPubkey.remote.transport, bhPubkey.remote.transport._get)
+
   // before adding datasets make sure requestNum is set to the correct value
   $(".typeahead").typeahead(
     {
@@ -403,6 +431,18 @@ $(document).ready(function () {
         header: '<h3 class="h5">Validators</h3>',
         suggestion: function (data) {
           return `<div class="text-monospace text-truncate">${data.index}: ${data.pubkey}</div>`
+        },
+      },
+    },
+    {
+      limit: 5,
+      name: "pubkeys",
+      source: bhPubkey,
+      display: "pubkey",
+      templates: {
+        header: '<h3 class="h5">Validators by Public Key</h3>',
+        suggestion: function (data) {
+          return `<div class="text-monospace text-truncate high-contrast">${data.pubkey}</div>`
         },
       },
     },
@@ -503,6 +543,18 @@ $(document).ready(function () {
     },
     {
       limit: 5,
+      name: "validators-by-withdrawal-credential",
+      source: bhValidatorsByWithdrawalCredential,
+      display: "withdrawalcredentials",
+      templates: {
+        header: '<h3 class="h5">Validators by Withdrawal Credentials</h3>',
+        suggestion: function (data) {
+          return `<div class="text-monospace text-truncate">${data.count}: 0x${data.withdrawalcredentials}</div>`
+        },
+      },
+    },
+    {
+      limit: 5,
       name: "graffiti",
       source: bhGraffiti,
       display: "graffiti",
@@ -547,12 +599,16 @@ $(document).ready(function () {
     } else if (sug.index !== undefined) {
       if (sug.index === "deposited") window.location = "/validator/" + sug.pubkey
       else window.location = "/validator/" + sug.index
+    } else if (sug.pubkey !== undefined) {
+      window.location = "/validator/" + sug.pubkey
     } else if (sug.epoch !== undefined) {
       window.location = "/epoch/" + sug.epoch
     } else if (sug.address !== undefined) {
       window.location = "/address/" + sug.address
     } else if (sug.eth1_address !== undefined) {
       window.location = "/validators/deposits?q=" + sug.eth1_address
+    } else if (sug.withdrawalcredentials !== undefined) {
+      window.location = "/validators/deposits?q=" + sug.withdrawalcredentials
     } else if (sug.graffiti !== undefined) {
       // sug.graffiti is html-escaped to prevent xss, we need to unescape it
       var el = document.createElement("textarea")
@@ -791,12 +847,47 @@ function trimCurrency(value) {
   return trimPrice(value, 2)
 }
 
-function getIncomeChartValueString(value, currency, ethPrice) {
-  if (this.currency === "ETH") {
-    return `${trimToken(value)} LYX`
+function getIncomeChartValueString(value, currency, priceCurrency, price) {
+  if (currency == priceCurrency || (currency == "xDAI" && priceCurrency == "DAI")) {
+    return `${trimToken(value)} ${currency}`
   }
 
-  return `${trimToken(value / ethPrice)} LYX (${trimCurrency(value)} ${currency})`
+  return `${trimToken(value / price)} ${currency} (${trimCurrency(value)} ${priceCurrency})`
+}
+
+$("[data-truncate-middle]").each(function (item) {
+  truncateMiddle(this)
+  addEventListener("resize", (event) => {
+    truncateMiddle(this)
+  })
+  addEventListener("copy", (event) => {
+    copyDots(event, this)
+  })
+})
+
+// function for trimming an placing ellipsis in the middle when text is overflowing
+function truncateMiddle(element) {
+  element.innerHTML = element.getAttribute("data-truncate-middle")
+  const parent = element.parentElement
+  // get ratio of visible width to full width
+  const ratio = parent.offsetWidth / parent.scrollWidth
+  if (ratio < 1) {
+    const removeCount = Math.ceil((parent.innerText.length * (1 - ratio)) / 2) + 1
+    const originalText = element.getAttribute("data-truncate-middle")
+    element.innerHTML = originalText.substr(0, originalText.length / 2 - removeCount) + "…" + originalText.substr(originalText.length / 2 + removeCount)
+  }
+}
+
+// function for inserting correct text into clipboard when copying ellipsis of text truncated with 'truncateMiddle()'
+function copyDots(event, element) {
+  const selection = document.getSelection()
+  if (selection.toString().includes("…")) {
+    const originalText = element.getAttribute("data-truncate-middle")
+    const diff = originalText.length - (element.innerText.length - 1)
+    const replaceText = selection.toString().replace("…", originalText.substr(originalText.length / 2 - diff / 2, diff))
+    event.clipboardData.setData("text/plain", replaceText)
+    event.preventDefault()
+  }
 }
 
 $("[data-tooltip-date=true]").each(function (item) {

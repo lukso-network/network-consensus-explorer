@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/services"
-	"eth2-exporter/utils"
 	"fmt"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 // var currentEpoch uint64
@@ -14,21 +15,14 @@ import (
 // SlotVizMetrics returns the metrics for the earliest epochs
 func SlotVizMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", utils.Config.Chain.Config.SecondsPerSlot)) // set local cache to the seconds per slot interval
-
-	// res, err := db.GetSlotVizData(latestEpoch)
-	// if err != nil {
-	// 	logger.Errorf("error getting slot viz data for %v route: %v", r.URL.String(), err)
-	// 	http.Error(w, "Internal server error", http.StatusServiceUnavailable)
-	// 	return
-	// }
+	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", utils.Config.Chain.ClConfig.SecondsPerSlot)) // set local cache to the seconds per slot interval
 
 	res := services.LatestSlotVizMetrics()
 
 	err := json.NewEncoder(w).Encode(res)
 	if err != nil {
 		logger.Errorf("error enconding json response for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 }

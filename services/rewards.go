@@ -2,13 +2,14 @@ package services
 
 import (
 	"bytes"
-	"eth2-exporter/db"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/jung-kurt/gofpdf"
 	"github.com/lib/pq"
@@ -28,9 +29,13 @@ func GetValidatorHist(validatorArr []uint64, currency string, start uint64, end 
 
 	var pricesDb []types.Price
 	// we get prices with a 1 day buffer to so we have no problems in different time zones
-	var oneDay = 24 * 60 * 60
+	var oneDay = uint64(24 * 60 * 60)
+
+	if start == end { // no date range was provided, use the current day as ending boundary
+		end = uint64(time.Now().Unix())
+	}
 	err = db.WriterDb.Select(&pricesDb,
-		`select ts, eur, usd, gbp, cad, jpy, cny, rub, aud from price where ts >= TO_TIMESTAMP($1) and ts <= TO_TIMESTAMP($2) order by ts desc`, start-uint64(oneDay), end+uint64(oneDay))
+		`select ts, eur, usd, gbp, cad, jpy, cny, rub, aud from price where ts >= TO_TIMESTAMP($1) and ts <= TO_TIMESTAMP($2) order by ts desc`, start-oneDay, end+oneDay)
 	if err != nil {
 		logger.Errorf("error getting prices: %v", err)
 	}

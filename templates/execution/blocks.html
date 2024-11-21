@@ -1,6 +1,7 @@
 {{ define "js" }}
   <script type="text/javascript" src="/js/datatables.min.js"></script>
   <script type="text/javascript" src="/js/datatable_input.js"></script>
+  <script type="text/javascript" src="/js/datatable_loader.js"></script>
 
   <script>
     // live update for current block id
@@ -31,16 +32,12 @@
     // data table
     $(document).ready(function () {
       $("#blocks").DataTable({
+        searchDelay: 0,
         processing: true,
         serverSide: true,
         ordering: false,
         searching: false,
-        ajax: {
-          url: "/blocks/data",
-          data: function (d) {
-            return $.extend({}, d, { recordsTotal: highestID })
-          },
-        },
+        ajax: dataTableLoader("/blocks/data", new URLSearchParams([["recordsTotal", highestID]])),
         pageLength: 10,
         pagingType: "input",
         language: {

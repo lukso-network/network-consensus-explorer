@@ -2,9 +2,10 @@ package services
 
 import (
 	"encoding/json"
-	"eth2-exporter/utils"
 	"net/http"
 	"time"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"sync"
 )
@@ -59,7 +60,7 @@ func InitGitCoinFeed() {
 		logger.Infoln("Started GitcoinFeed service")
 		for {
 			updateFeed()
-			time.Sleep(time.Second * 120)
+			time.Sleep(time.Minute * 2)
 		}
 	}()
 }

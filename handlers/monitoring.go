@@ -3,9 +3,10 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"eth2-exporter/db"
 	"fmt"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
 
 	"github.com/gorilla/mux"
 )
@@ -41,12 +42,11 @@ func Monitoring(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			http.Error(w, "No monitoring data available", http.StatusServiceUnavailable)
-			return
+			http.Error(w, "No monitoring data available", http.StatusNotFound)
 		} else {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
-			return
 		}
+		return
 	}
 
 	if status == "OK" {

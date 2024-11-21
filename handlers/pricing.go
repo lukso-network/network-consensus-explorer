@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"database/sql"
-	"eth2-exporter/db"
-	"eth2-exporter/mail"
-	"eth2-exporter/templates"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"html/template"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/mail"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/gorilla/csrf"
 )
@@ -31,7 +32,7 @@ func Pricing(w http.ResponseWriter, r *http.Request) {
 	pageData.FlashMessage, err = utils.GetFlash(w, r, "pricing_flash")
 	if err != nil {
 		logger.Errorf("error retrieving flashes for advertisewithusform %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -39,7 +40,7 @@ func Pricing(w http.ResponseWriter, r *http.Request) {
 		subscription, err := db.StripeGetUserSubscription(data.User.UserID, utils.GROUP_API)
 		if err != nil {
 			logger.Errorf("error retrieving user subscriptions %v", err)
-			http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		pageData.Subscription = subscription
@@ -75,7 +76,7 @@ func MobilePricing(w http.ResponseWriter, r *http.Request) {
 	pageData.FlashMessage, err = utils.GetFlash(w, r, "pricing_flash")
 	if err != nil {
 		logger.Errorf("error retrieving flashes for advertisewithusform %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -83,7 +84,7 @@ func MobilePricing(w http.ResponseWriter, r *http.Request) {
 		subscription, err := db.StripeGetUserSubscription(data.User.UserID, utils.GROUP_MOBILE)
 		if err != nil {
 			logger.Errorf("error retrieving user subscriptions %v", err)
-			http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		pageData.Subscription = subscription
@@ -91,7 +92,7 @@ func MobilePricing(w http.ResponseWriter, r *http.Request) {
 		premiumSubscription, err := db.GetUserPremiumSubscription(data.User.UserID)
 		if err != nil && err != sql.ErrNoRows {
 			logger.Errorf("error retrieving user subscriptions %v", err)
-			http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
 		pageData.ActiveMobileStoreSub = premiumSubscription.Active
@@ -113,9 +114,10 @@ func MobilePricing(w http.ResponseWriter, r *http.Request) {
 func PricingPost(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		utils.LogError(err, "error parsing form", 0)
+		utils.LogError(err, "error parsing form for pricing request", 0, map[string]interface{}{
+			"route": r.URL.String(),
+		})
 		utils.SetFlash(w, r, "pricing_flash", "Error: invalid form submitted")
-		logger.Errorf("error parsing pricing request form for %v route: %v", r.URL.String(), err)
 		http.Redirect(w, r, "/pricing", http.StatusSeeOther)
 		return
 	}
@@ -141,7 +143,7 @@ func PricingPost(w http.ResponseWriter, r *http.Request) {
 	// escape html
 	msg = template.HTMLEscapeString(msg)
 
-	err = mail.SendTextMail("inquiries@beaconcha.in", "New API usage inquiry", msg, []types.EmailAttachment{})
+	err = mail.SendTextMail(utils.Config.Frontend.Mail.Contact.InquiryEmail, "New API usage inquiry", msg, []types.EmailAttachment{})
 	if err != nil {
 		logger.Errorf("error sending ad form: %v", err)
 		utils.SetFlash(w, r, "pricing_flash", "Error: unable to submit api request")

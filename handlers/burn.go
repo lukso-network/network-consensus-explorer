@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/price"
-	"eth2-exporter/services"
-	"eth2-exporter/templates"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/price"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 func Burn(w http.ResponseWriter, r *http.Request) {
@@ -23,13 +25,11 @@ func Burn(w http.ResponseWriter, r *http.Request) {
 
 	currency := GetCurrency(r)
 
-	if currency == "ETH" || currency == "LYX" {
+	if currency == utils.Config.Frontend.ElCurrency {
 		currency = "USD"
 	}
 
-	price := price.GetEthPrice(currency)
-
-	latestBurn.Price = price
+	latestBurn.Price = price.GetPrice(utils.Config.Frontend.ElCurrency, currency)
 	latestBurn.Currency = currency
 
 	data.Data = latestBurn
@@ -48,15 +48,13 @@ func BurnPageData(w http.ResponseWriter, r *http.Request) {
 		currency = "USD"
 	}
 
-	price := price.GetEthPrice(currency)
-
-	latestBurn.Price = price
+	latestBurn.Price = price.GetPrice(utils.Config.Frontend.ElCurrency, currency)
 	latestBurn.Currency = currency
 
 	err := json.NewEncoder(w).Encode(latestBurn)
 	if err != nil {
 		logger.Errorf("error sending latest burn page data: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 }

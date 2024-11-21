@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"firebase.google.com/go/messaging"
+	"firebase.google.com/go/v4/messaging"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/lib/pq"
@@ -51,6 +51,16 @@ const (
 	SyncCommitteeSoon                                EventName = "validator_synccommittee_soon"
 )
 
+var MachineEvents = []EventName{
+	MonitoringMachineCpuLoadEventName,
+	MonitoringMachineOfflineEventName,
+	MonitoringMachineDiskAlmostFullEventName,
+	MonitoringMachineCpuLoadEventName,
+	MonitoringMachineMemoryUsageEventName,
+	MonitoringMachineSwitchedToETH2FallbackEventName,
+	MonitoringMachineSwitchedToETH1FallbackEventName,
+}
+
 var UserIndexEvents = []EventName{
 	EthClientUpdateEventName,
 	MonitoringMachineCpuLoadEventName,
@@ -79,7 +89,7 @@ var EventLabel map[EventName]string = map[EventName]string{
 	NetworkValidatorExitQueueFullEventName:           "The validator exit queue is full",
 	NetworkValidatorExitQueueNotFullEventName:        "The validator exit queue is empty",
 	NetworkLivenessIncreasedEventName:                "The network is experiencing liveness issues",
-	EthClientUpdateEventName:                         "A ethereum client has a new available update",
+	EthClientUpdateEventName:                         "An Ethereum client has a new update available",
 	MonitoringMachineOfflineEventName:                "Your machine(s) might be offline",
 	MonitoringMachineDiskAlmostFullEventName:         "Your machine(s) disk space is running low",
 	MonitoringMachineCpuLoadEventName:                "Your machine(s) has a high CPU load",
@@ -87,15 +97,24 @@ var EventLabel map[EventName]string = map[EventName]string{
 	MonitoringMachineSwitchedToETH2FallbackEventName: "Your machine(s) is using its consensus client fallback",
 	MonitoringMachineSwitchedToETH1FallbackEventName: "Your machine(s) is using its execution client fallback",
 	TaxReportEventName:                               "You have an available tax report",
-	RocketpoolCommissionThresholdEventName:           "Your configured rocket pool commission threshold is reached",
-	RocketpoolNewClaimRoundStartedEventName:          "Your rocket pool claim round is available",
-	RocketpoolCollateralMinReached:                   "You reached the rocketpool min collateral",
-	RocketpoolCollateralMaxReached:                   "You reached the rocketpool max collateral",
+	RocketpoolCommissionThresholdEventName:           "Your configured Rocket Pool commission threshold is reached",
+	RocketpoolNewClaimRoundStartedEventName:          "Your Rocket Pool claim from last round is available",
+	RocketpoolCollateralMinReached:                   "You reached the Rocket Pool min RPL collateral",
+	RocketpoolCollateralMaxReached:                   "You reached the Rocket Pool max RPL collateral",
 	SyncCommitteeSoon:                                "Your validator(s) will soon be part of the sync committee",
 }
 
 func IsUserIndexed(event EventName) bool {
 	for _, ev := range UserIndexEvents {
+		if ev == event {
+			return true
+		}
+	}
+	return false
+}
+
+func IsMachineNotification(event EventName) bool {
+	for _, ev := range MachineEvents {
 		if ev == event {
 			return true
 		}
@@ -291,12 +310,14 @@ type MobileSubscriptionTransactionGeneric struct {
 }
 
 type PremiumData struct {
-	ID        uint64    `db:"id"`
-	Receipt   string    `db:"receipt"`
-	Store     string    `db:"store"`
-	Active    bool      `db:"active"`
-	ProductID string    `db:"product_id"`
-	ExpiresAt time.Time `db:"expires_at"`
+	ID               uint64    `db:"id"`
+	Receipt          string    `db:"receipt"`
+	Store            string    `db:"store"`
+	Active           bool      `db:"active"`
+	ValidateRemotely bool      `db:"validate_remotely"`
+	ProductID        string    `db:"product_id"`
+	UserID           uint64    `db:"user_id"`
+	ExpiresAt        time.Time `db:"expires_at"`
 }
 
 type UserWithPremium struct {
@@ -530,9 +551,9 @@ type Eth1AddressSearchItem struct {
 }
 
 type RawMempoolResponse struct {
-	Pending map[string]map[int]*RawMempoolTransaction `json:"pending"`
-	Queued  map[string]map[int]*RawMempoolTransaction `json:"queued"`
-	BaseFee map[string]map[int]*RawMempoolTransaction `json:"baseFee"`
+	Pending map[string]map[string]*RawMempoolTransaction `json:"pending"`
+	Queued  map[string]map[string]*RawMempoolTransaction `json:"queued"`
+	BaseFee map[string]map[string]*RawMempoolTransaction `json:"baseFee"`
 
 	TxsByHash map[common.Hash]*RawMempoolTransaction
 }

@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"eth2-exporter/db"
-	ethclients "eth2-exporter/ethClients"
-	"eth2-exporter/templates"
-	"eth2-exporter/types"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	ethclients "github.com/gobitfly/eth2-beaconchain-explorer/ethClients"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
 
 	"github.com/gorilla/csrf"
 )
@@ -52,6 +53,8 @@ func EthClientsServices(w http.ResponseWriter, r *http.Request) {
 				pageData.Nimbus.IsUserSubscribed = true
 			case "erigon":
 				pageData.Erigon.IsUserSubscribed = true
+			case "reth":
+				pageData.Reth.IsUserSubscribed = true
 			case "rocketpool":
 				pageData.RocketpoolSmartnode.IsUserSubscribed = true
 			case "mev-boost":

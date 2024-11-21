@@ -2,14 +2,15 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/templates"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 )
 
 // ValidatorsLeaderboard returns the validator-leaderboard using a go template
@@ -56,20 +57,20 @@ func ValidatorsLeaderboardData(w http.ResponseWriter, r *http.Request) {
 
 	draw, err := strconv.ParseUint(q.Get("draw"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables data parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables draw parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter draw", http.StatusBadRequest)
 		return
 	}
 	start, err := strconv.ParseUint(q.Get("start"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables start parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables start parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter start", http.StatusBadRequest)
 		return
 	}
 	length, err := strconv.ParseUint(q.Get("length"), 10, 64)
 	if err != nil {
-		logger.Errorf("error converting datatables length parameter from string to int: %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		logger.Warnf("error converting datatables length parameter from string to int: %v", err)
+		http.Error(w, "Error: Missing or invalid parameter length", http.StatusBadRequest)
 		return
 	}
 	if length > 100 {
@@ -131,7 +132,7 @@ func ValidatorsLeaderboardData(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		logger.Errorf("error retrieving performanceData data (search=%v): %v", search != "", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 	if len(performanceData) > 0 {
@@ -145,10 +146,10 @@ func ValidatorsLeaderboardData(w http.ResponseWriter, r *http.Request) {
 			utils.FormatValidatorWithName(b.Index, b.Name),
 			utils.FormatPublicKey(b.PublicKey),
 			fmt.Sprintf("%v", b.Balance),
-			utils.FormatIncome(b.Performance1d, currency),
-			utils.FormatIncome(b.Performance7d, currency),
-			utils.FormatIncome(b.Performance31d, currency),
-			utils.FormatIncome(b.Performance365d, currency),
+			utils.FormatClCurrency(b.Performance1d, currency, 5, true, true, true, false),
+			utils.FormatClCurrency(b.Performance7d, currency, 5, true, true, true, false),
+			utils.FormatClCurrency(b.Performance31d, currency, 5, true, true, true, false),
+			utils.FormatClCurrency(b.Performance365d, currency, 5, true, true, true, false),
 		}
 	}
 
@@ -162,7 +163,7 @@ func ValidatorsLeaderboardData(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(data)
 	if err != nil {
 		logger.Errorf("error enconding json response for %v route: %v", r.URL.String(), err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 }

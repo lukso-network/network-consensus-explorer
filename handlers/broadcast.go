@@ -3,13 +3,14 @@ package handlers
 import (
 	"database/sql"
 	"errors"
-	"eth2-exporter/db"
-	"eth2-exporter/services"
-	"eth2-exporter/templates"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"fmt"
 	"net/http"
+
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/templates"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 
 	"github.com/gorilla/mux"
 )
@@ -28,7 +29,7 @@ func Broadcast(w http.ResponseWriter, r *http.Request) {
 	pageData.FlashMessage, err = utils.GetFlash(w, r, "info_flash")
 	if err != nil {
 		logger.Errorf("error retrieving flashes for broadcast %v", err)
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -95,10 +96,12 @@ func BroadcastStatus(w http.ResponseWriter, r *http.Request) {
 
 	job, err := db.GetNodeJob(vars["jobID"])
 	if err != nil {
-		if err != sql.ErrNoRows {
-			logger.Errorf("error retrieving job %v", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Not found", http.StatusNotFound)
+		} else {
+			logger.WithError(err).Errorf("error retrieving node-job")
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -111,7 +114,7 @@ func BroadcastStatus(w http.ResponseWriter, r *http.Request) {
 	validators, err := db.GetNodeJobValidatorInfos(job)
 	if err != nil {
 		logger.WithError(err).Errorf("error retrieving validator infos")
-		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
