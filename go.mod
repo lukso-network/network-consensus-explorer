@@ -35,7 +35,6 @@ require (
 	github.com/gorilla/websocket v1.5.1
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/jackc/pgx-shopspring-decimal v0.0.0-20220624020537-1d36b5a1853e
-	github.com/jackc/pgx/v4 v4.18.1
 	github.com/jackc/pgx/v5 v5.4.3
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/juliangruber/go-intersect v1.1.0

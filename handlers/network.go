@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"eth2-exporter/db"
-	"eth2-exporter/rpc"
-	"eth2-exporter/services"
-	"eth2-exporter/types"
-	"eth2-exporter/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/gobitfly/eth2-beaconchain-explorer/db"
+	"github.com/gobitfly/eth2-beaconchain-explorer/rpc"
+	"github.com/gobitfly/eth2-beaconchain-explorer/services"
+	"github.com/gobitfly/eth2-beaconchain-explorer/types"
+	"github.com/gobitfly/eth2-beaconchain-explorer/utils"
 	"github.com/shopspring/decimal"
 	"math/big"
 	"net/http"
@@ -49,7 +49,7 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.Config.DepositChainID)
+	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.ClConfig.DepositChainID)
 	rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
 	if err != nil {
 		logger.WithError(err).Error("new total supply Lighthouse client in monitor error")
@@ -68,9 +68,9 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	latestBurnData := services.LatestBurnData()
-	address := common.FromHex(strings.TrimPrefix(utils.Config.Chain.Config.DepositContractAddress, "0x"))
+	address := common.FromHex(strings.TrimPrefix(utils.Config.Chain.ClConfig.DepositContractAddress, "0x"))
 
-	addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address)
+	addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address, 0, db.ECR20TokensPerAddressLimit)
 	if err != nil {
 		logger.Errorf("error retieving balances for %v route: %v", r.URL.String(), err)
 		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
