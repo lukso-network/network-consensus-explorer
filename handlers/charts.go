@@ -48,7 +48,7 @@ func Charts(w http.ResponseWriter, r *http.Request) {
 		chart.Data.Series = nil
 
 		// If at least one chart shows info about ETH.STORE, then show the disclaimer
-		if disclaimer == "" && strings.Contains(chart.Data.Subtitle, "ETH.STORE®") {
+		if disclaimer == "" && strings.Contains(chart.Data.Subtitle, "LYXt.STORE®") {
 			disclaimer = services.EthStoreDisclaimer()
 		}
 	}

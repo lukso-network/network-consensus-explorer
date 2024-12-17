@@ -85,6 +85,10 @@ func (bigtable *Bigtable) TransformEnsNameRegistered(blk *types.Eth1Block, cache
 	switch bigtable.chainId {
 	case "1":
 		ensCrontractAddresses = ensContracts.ENSCrontractAddressesEthereum
+	case "42":
+		ensCrontractAddresses = ensContracts.ENSCrontractAddressesEthereum
+	case "4201":
+		ensCrontractAddresses = ensContracts.ENSCrontractAddressesEthereum
 	case "17000":
 		ensCrontractAddresses = ensContracts.ENSCrontractAddressesHolesky
 	case "11155111":

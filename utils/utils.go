@@ -727,8 +727,8 @@ func ReadConfig(cfg *types.Config, path string) error {
 			cfg.Frontend.ClCurrencyDecimals = 18
 			cfg.Frontend.ClCurrencyDivisor = 1e9
 		default:
-			cfg.Frontend.MainCurrency = "ETH"
-			cfg.Frontend.ClCurrency = "ETH"
+			cfg.Frontend.MainCurrency = "LYXt"
+			cfg.Frontend.ClCurrency = "LYXt"
 			cfg.Frontend.ClCurrencyDecimals = 18
 			cfg.Frontend.ClCurrencyDivisor = 1e9
 		}
@@ -741,7 +741,7 @@ func ReadConfig(cfg *types.Config, path string) error {
 			cfg.Frontend.ElCurrencyDecimals = 18
 			cfg.Frontend.ElCurrencyDivisor = 1e18
 		default:
-			cfg.Frontend.ElCurrency = "ETH"
+			cfg.Frontend.ElCurrency = "LYXt"
 			cfg.Frontend.ElCurrencyDecimals = 18
 			cfg.Frontend.ElCurrencyDivisor = 1e18
 		}

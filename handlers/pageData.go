@@ -34,7 +34,7 @@ func InitPageData(w http.ResponseWriter, r *http.Request, active, path, title st
 	data := &types.PageData{
 		Meta: &types.Meta{
 			Title:       fullTitle,
-			Description: "LUKSO Consensus explorer makes LUKSO accessible to non-technical end users",
+			Description: "LUKSO Consensus Explorer makes LUKSO accessible to non-technical end users",
 			Path:        path,
 			GATag:       utils.Config.Frontend.GATag,
 			NoTrack:     false,
@@ -286,6 +286,37 @@ func createMenuItems(active string, isMain bool) []types.MainMenuItem {
 			IsActive: active == "dashboard",
 			Path:     "/dashboard",
 		},
+		{
+			Label:        "More",
+			IsActive:     active == "more",
+			HasBigGroups: true,
+			Groups: []types.NavigationGroup{
+				{
+					Label: "Stats",
+					Links: []types.NavigationLink{
+						{
+							Label: "Block Viz",
+							Path:  "/vis",
+							Icon:  "fa-project-diagram",
+						},
+					},
+				}, {
+					Label: "Tools",
+					Links: []types.NavigationLink{
+						{
+							Label: "API Docs",
+							Path:  "/api/v1/docs/index.html",
+							Icon:  "fa-book-reader",
+						},
+						{
+							Label: "Broadcast Signed Messages",
+							Path:  "/tools/broadcast",
+							Icon:  "fa-bullhorn",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -384,6 +415,38 @@ func createMenuItemsGnosis(active string, isMain bool) []types.MainMenuItem {
 			Label:    "Dashboard",
 			IsActive: active == "dashboard",
 			Path:     "/dashboard",
+		},
+		{
+			Label:        "More",
+			IsActive:     active == "more",
+			HasBigGroups: true,
+			Groups: []types.NavigationGroup{
+				{
+					Label: "Stats",
+					Links: []types.NavigationLink{
+						{
+							Label: "Block Viz",
+							Path:  "/vis",
+							Icon:  "fa-project-diagram",
+						},
+					},
+				},
+				{
+					Label: "Tools",
+					Links: []types.NavigationLink{
+						{
+							Label: "API Docs",
+							Path:  "/api/v1/docs/index.html",
+							Icon:  "fa-book-reader",
+						},
+						{
+							Label: "Broadcast Signed Messages",
+							Path:  "/tools/broadcast",
+							Icon:  "fa-bullhorn",
+						},
+					},
+				},
+			},
 		},
 	}
 }

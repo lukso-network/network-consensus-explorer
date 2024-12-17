@@ -42,6 +42,12 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	latestFinalizedEpoch := services.LatestFinalizedEpoch()
+	if err != nil {
+		logger.WithError(err).Error("error getting LatestFinalizedEpoch")
+		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
+
+		return
+	}
 
 	chainIDBig := new(big.Int).SetUint64(utils.Config.Chain.ClConfig.DepositChainID)
 	rpcClient, err := rpc.NewLighthouseClient("http://"+utils.Config.Indexer.Node.Host+":"+utils.Config.Indexer.Node.Port, chainIDBig)
@@ -64,7 +70,7 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 	latestBurnData := services.LatestBurnData()
 	address := common.FromHex(strings.TrimPrefix(utils.Config.Chain.ClConfig.DepositContractAddress, "0x"))
 
-	addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address, 0, 1)
+	addressMetadata, err := db.BigtableClient.GetMetadataForAddress(address, 0, db.ECR20TokensPerAddressLimit)
 	if err != nil {
 		logger.Errorf("error retieving balances for %v route: %v", r.URL.String(), err)
 		http.Error(w, "Internal server error", http.StatusServiceUnavailable)
@@ -74,7 +80,8 @@ func Supply(w http.ResponseWriter, r *http.Request) {
 
 	depositContractBalanceGWei := decimal.NewFromBigInt(new(big.Int).SetBytes(addressMetadata.EthBalance.Balance), 0).DivRound(decimal.NewFromInt(params.GWei), 18)
 
-	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - (uint64(depositContractBalanceGWei.InexactFloat64()) + uint64(latestBurnData.TotalBurned))
+	// Deposit contract holds 320k LYX lost forever, so we reduce by 320000000000000 GWei
+	totalSupply := (genesisTotalSupply + totalAmountWithdrawn + validatorParticipation.EligibleEther) - (uint64(depositContractBalanceGWei.InexactFloat64()) + uint64(latestBurnData.TotalBurned) + uint64(320000000000000))
 	amount := new(big.Int).Mul(new(big.Int).SetUint64(totalSupply), big.NewInt(params.GWei))
 
 	data := types.SupplyResponse{

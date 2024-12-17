@@ -12,7 +12,7 @@ func EthStore(w http.ResponseWriter, r *http.Request) {
 	templateFiles := append(layoutTemplateFiles, "ethstore.html", "svg/barChart.html")
 	ethStoreTemplate := templates.GetTemplate(templateFiles...)
 	w.Header().Set("Content-Type", "text/html")
-	data := InitPageData(w, r, "services", "/ethstore", "ETH.STORE Statistics", templateFiles)
+	data := InitPageData(w, r, "services", "/ethstore", "LYXt.STORE Statistics", templateFiles)
 	data.Data = ethStoreData()
 
 	if handleTemplateError(w, r, "ethstore.go", "EthStore", "", ethStoreTemplate.ExecuteTemplate(w, "layout", data)) != nil {

@@ -3202,36 +3202,13 @@ func getUserPremium(r *http.Request) PremiumUser {
 
 func GetUserPremiumByPackage(pkg string) PremiumUser {
 	result := PremiumUser{
-		Package:                "standard",
+		Package:                "whale",
 		MaxValidators:          300,
 		MaxStats:               43200,
 		MaxNodes:               10,
 		WidgetSupport:          false,
 		NotificationThresholds: false,
 		NoAds:                  true,
-	}
-
-	pkg = utils.MapProductV2ToV1(pkg)
-
-	if pkg == "" || pkg == "standard" {
-		return result
-	}
-
-	result.Package = pkg
-	result.MaxStats = 43200
-	result.NotificationThresholds = true
-	result.NoAds = true
-
-	if result.Package != "plankton" {
-		result.WidgetSupport = true
-	}
-
-	if result.Package == "goldfish" {
-		result.MaxNodes = 2
-	}
-	if result.Package == "whale" {
-		result.MaxValidators = 300
-		result.MaxNodes = 10
 	}
 
 	return result

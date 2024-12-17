@@ -503,21 +503,9 @@ func main() {
 			router.HandleFunc("/tables/{tableId}/state", handlers.SetDataTableStateChanges).Methods("PUT")
 			router.HandleFunc("/ens/{search}", handlers.EnsSearch).Methods("GET")
 
-			router.HandleFunc("/ethstore", handlers.EthStore).Methods("GET")
-
-			router.HandleFunc("/stakingServices", handlers.StakingServices).Methods("GET")
-
 			router.HandleFunc("/ethClients", handlers.EthClientsServices).Methods("GET")
 			router.HandleFunc("/pools", handlers.Pools).Methods("GET")
 			router.HandleFunc("/relays", handlers.Relays).Methods("GET")
-			router.HandleFunc("/pools/rocketpool", handlers.PoolsRocketpool).Methods("GET")
-			router.HandleFunc("/pools/rocketpool/data/minipools", handlers.PoolsRocketpoolDataMinipools).Methods("GET")
-			router.HandleFunc("/pools/rocketpool/data/nodes", handlers.PoolsRocketpoolDataNodes).Methods("GET")
-			router.HandleFunc("/pools/rocketpool/data/dao_proposals", handlers.PoolsRocketpoolDataDAOProposals).Methods("GET")
-			router.HandleFunc("/pools/rocketpool/data/dao_members", handlers.PoolsRocketpoolDataDAOMembers).Methods("GET")
-
-			router.HandleFunc("/advertisewithus", handlers.AdvertiseWithUs).Methods("GET")
-			router.HandleFunc("/advertisewithus", handlers.AdvertiseWithUsPost).Methods("POST")
 
 			// confirming the email update should not require auth
 			router.HandleFunc("/settings/email/{hash}", handlers.UserConfirmUpdateEmail).Methods("GET")
