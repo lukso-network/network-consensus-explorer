@@ -123,7 +123,7 @@ function create_typeahead(input_container) {
         return data && data.validator_indices && data.validator_indices.length ? data.validator_indices.join(",") : ""
       },
       templates: {
-        header: '<h5 class="font-weight-bold ml-3">ETH Address</h5>',
+        header: '<h5 class="font-weight-bold ml-3">Address</h5>',
         suggestion: function (data) {
           var len = data.validator_indices.length > 10 ? 10 + "+" : data.validator_indices.length
           return `<div class="text-monospace high-contrast" style="display:flex"><div class="text-truncate" style="flex:1 1 auto;">${data.eth1_address}</div><div style="max-width:fit-content;white-space:nowrap;">${len}</div></div>`
@@ -198,7 +198,7 @@ function create_validators_typeahead(input_container_selector, table_selector) {
         return data?.eth1_address || ""
       },
       templates: {
-        header: '<h5 class="font-weight-bold ml-3">ETH Address</h5>',
+        header: '<h5 class="font-weight-bold ml-3">Address</h5>',
         suggestion: function (data) {
           var len = data.validator_indices.length > 10 ? 10 + "+" : data.validator_indices.length
           return `<div class="text-monospace high-contrast" style="display:flex"><div class="text-truncate" style="flex:1 1 auto;">0x${data.eth1_address}</div><div style="max-width:fit-content;white-space:nowrap;">${len}</div></div>`

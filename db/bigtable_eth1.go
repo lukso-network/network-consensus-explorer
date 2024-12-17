@@ -2672,7 +2672,7 @@ func (bigtable *Bigtable) GetAddressBlobTableData(address []byte, pageToken stri
 			utils.FormatInOutSelf(address, t.From, t.To),
 			utils.FormatAddressWithLimitsInAddressPageTable(address, t.To, toName, false, digitLimitInAddressPagesTable, nameLimitInAddressPagesTable, true),
 			utils.FormatBytesAmount(t.BlobGasPrice, "GWei", 6),
-			utils.FormatBytesAmount(t.BlobTxFee, "ETH", 6),
+			utils.FormatBytesAmount(t.BlobTxFee, "LYX", 6),
 			len(t.BlobVersionedHashes),
 		}
 	}
