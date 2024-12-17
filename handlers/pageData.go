@@ -268,6 +268,11 @@ func createMenuItems(active string, isMain bool) []types.MainMenuItem {
 				}, {
 					Links: []types.NavigationLink{
 						{
+							Label: "Deposits",
+							Path:  "/validators/deposits",
+							Icon:  "fa-file-signature",
+						},
+						{
 							Label: "Withdrawals",
 							Path:  "/validators/withdrawals",
 							Icon:  "fa-money-bill",
@@ -381,11 +386,6 @@ func createMenuItemsGnosis(active string, isMain bool) []types.MainMenuItem {
 			Path:     "/dashboard",
 		},
 		{
-			Label:    "Notifications",
-			IsActive: false,
-			Path:     "/user/notifications",
-		},
-		{
 			Label:        "More",
 			IsActive:     active == "more",
 			HasBigGroups: true,
@@ -394,25 +394,9 @@ func createMenuItemsGnosis(active string, isMain bool) []types.MainMenuItem {
 					Label: "Stats",
 					Links: []types.NavigationLink{
 						{
-							Label: "Charts",
-							Path:  "/charts",
-							Icon:  "fa-chart-bar",
-						},
-						{
-							Label: "Income History",
-							Path:  "/rewards",
-							Icon:  "fa-money-bill-alt",
-						},
-						{
 							Label: "Block Viz",
 							Path:  "/vis",
 							Icon:  "fa-project-diagram",
-						},
-						{
-							Label:    "Correlations",
-							Path:     "/correlations",
-							Icon:     "fa-chart-line",
-							IsHidden: !isMain,
 						},
 					},
 				},
@@ -420,60 +404,14 @@ func createMenuItemsGnosis(active string, isMain bool) []types.MainMenuItem {
 					Label: "Tools",
 					Links: []types.NavigationLink{
 						{
-							Label: "beaconcha.in App",
-							Path:  "/mobile",
-							Icon:  "fa-mobile-alt",
-						},
-						{
-							Label: "beaconcha.in Premium",
-							Path:  "/premium",
-							Icon:  "fa-gem",
-						},
-						{
-							Label:      "Webhooks",
-							Path:       "/user/webhooks",
-							CustomIcon: "webhook_logo_svg",
-						},
-						{
 							Label: "API Docs",
 							Path:  "/api/v1/docs/index.html",
 							Icon:  "fa-book-reader",
 						},
 						{
-							Label: "API Pricing",
-							Path:  "/pricing",
-							Icon:  "fa-laptop-code",
-						},
-						{
 							Label: "Broadcast Signed Messages",
 							Path:  "/tools/broadcast",
 							Icon:  "fa-bullhorn",
-						},
-					},
-				},
-				{
-					Label: "Services",
-					Links: []types.NavigationLink{
-						{
-							Label:         "Eversteel",
-							Path:          "https://eversteel.io/",
-							CustomIcon:    "eversteel_logo_svg",
-							IsHighlighted: true,
-						},
-						{
-							Label: "Knowledge Base",
-							Path:  "https://kb.beaconcha.in",
-							Icon:  "fa-external-link-alt",
-						},
-						{
-							Label: "Notifications",
-							Path:  "/user/notifications",
-							Icon:  "fa-bell",
-						},
-						{
-							Label: "Graffiti Wall",
-							Path:  "/graffitiwall",
-							Icon:  "fa-paint-brush",
 						},
 					},
 				},
