@@ -42,6 +42,8 @@ var currencies = map[string]struct {
 	"DAI":  {"DAI", "DAI stablecoin"},
 	"xDAI": {"xDAI", "xDAI stablecoin"},
 	"ETH":  {"ETH", "Ether"},
+	"LYX":  {"LYX", "LYX"},
+	"LYXt": {"LYXt", "LYXt"},
 	"EUR":  {"€", "Euro"},
 	"GBP":  {"£", "Pound Sterling"},
 	"GNO":  {"GNO", "Gnosis"},
