@@ -286,6 +286,37 @@ func createMenuItems(active string, isMain bool) []types.MainMenuItem {
 			IsActive: active == "dashboard",
 			Path:     "/dashboard",
 		},
+		{
+			Label:        "More",
+			IsActive:     active == "more",
+			HasBigGroups: true,
+			Groups: []types.NavigationGroup{
+				{
+					Label: "Stats",
+					Links: []types.NavigationLink{
+						{
+							Label: "Block Viz",
+							Path:  "/vis",
+							Icon:  "fa-project-diagram",
+						},
+					},
+				}, {
+					Label: "Tools",
+					Links: []types.NavigationLink{
+						{
+							Label: "API Docs",
+							Path:  "/api/v1/docs/index.html",
+							Icon:  "fa-book-reader",
+						},
+						{
+							Label: "Broadcast Signed Messages",
+							Path:  "/tools/broadcast",
+							Icon:  "fa-bullhorn",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
